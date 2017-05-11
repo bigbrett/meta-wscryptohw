@@ -21,7 +21,6 @@
 // xilinx helper functions 
 #include <xsha256.h>
 
-
 // TODO this needs to be changed
 #define WSSHA256BASEADDR 0x43C00000
 
@@ -71,11 +70,13 @@ static struct file_operations fops =
 static int __init wssha256_init(void){
    printk(KERN_INFO "wssha256: Initializing the wssha256 LKM\n");
 
-   // map device into memory 
+   // map device into memory and initialize structure
    // TODO dtc support
    vbaseaddr = ioremap(WSSHA256BASEADDR, SZ_64K);
-//   XShaInst.
-   printk(KERN_INFO "\tphysical address = 0x%X\nvirtual address = 0x%X\n", WSSHA256BASEADDR,vbaseaddr);
+   XShaInst.Axilites_BaseAddress = vbaseaddr;
+   XShaInst.IsReady = 1;
+
+   printk(KERN_INFO "\tphysical address = 0x%X\nvirtual address = 0x%X\n", WSSHA256BASEADDR, XShaInst.Axilites_BaseAddress);
  
    // Try to dynamically allocate a major number for the device -- more difficult but worth it
    majorNumber = register_chrdev(0, DEVICE_NAME, &fops);

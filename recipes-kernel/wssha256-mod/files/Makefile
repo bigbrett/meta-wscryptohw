@@ -1,4 +1,6 @@
-obj-m := wssha256kern.o
+#obj-m := wssha256kern.o 
+obj-m := wssha256kern.o 
+wssha256kern-objs := libxil.a xsha256.o wssha256mod.o 
 
 SRC := $(shell pwd)
 

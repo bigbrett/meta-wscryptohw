@@ -5,9 +5,11 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=12f884d2ae1ff87c09e5b7ccc2c4ca7e"
 inherit module
 
 SRC_URI = "file://Makefile \
-           file://wssha256kern.c \
+           file://wssha256mod.c \
            file://xsha256.h \
+           file://xsha256_hw.h \
            file://xsha256.c \
+           file://libxil.a \
            file://COPYING \
           "
 
