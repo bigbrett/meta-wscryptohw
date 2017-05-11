@@ -15,7 +15,24 @@
 #include<string.h>
 #include<unistd.h>
 
-#define INTERACTIVE 1
+
+#define XSHA256_AXILITES_ADDR_AP_CTRL          0x000
+#define XSHA256_AXILITES_ADDR_GIE              0x004
+#define XSHA256_AXILITES_ADDR_IER              0x008
+#define XSHA256_AXILITES_ADDR_ISR              0x00c
+#define XSHA256_AXILITES_ADDR_BASE_OFFSET_DATA 0x200
+#define XSHA256_AXILITES_BITS_BASE_OFFSET_DATA 32
+#define XSHA256_AXILITES_ADDR_BYTES_DATA       0x208
+#define XSHA256_AXILITES_BITS_BYTES_DATA       32
+#define XSHA256_AXILITES_ADDR_DATA_BASE        0x100
+#define XSHA256_AXILITES_ADDR_DATA_HIGH        0x1ff
+#define XSHA256_AXILITES_WIDTH_DATA            8
+#define XSHA256_AXILITES_DEPTH_DATA            256
+#define XSHA256_AXILITES_ADDR_DIGEST_BASE      0x220
+#define XSHA256_AXILITES_ADDR_DIGEST_HIGH      0x23f
+#define XSHA256_AXILITES_WIDTH_DIGEST          8
+#define XSHA256_AXILITES_DEPTH_DIGEST          32
+
 #define BUFFER_LENGTH 256               ///< The buffer length (crude but fine)
 
 static char receive[BUFFER_LENGTH];     ///< The receive buffer from the LKM
