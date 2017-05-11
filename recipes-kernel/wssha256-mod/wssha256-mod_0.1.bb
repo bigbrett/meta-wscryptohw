@@ -6,6 +6,8 @@ inherit module
 
 SRC_URI = "file://Makefile \
            file://wssha256kern.c \
+           file://xsha256.h \
+           file://xsha256.c \
            file://COPYING \
           "
 

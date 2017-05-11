@@ -1,13 +1,13 @@
 /**
  * @file   wssha256.c
- * @author Derek Molloy
- * @date   7 April 2015
+ * @author Brett Nicholas
+ * @date   5/11/17
  * @version 0.1
- * @brief   An introductory character driver to support the second article of my series on
- * Linux loadable kernel module (LKM) development. This module maps to /dev/wssha256 and
- * comes with a helper C program that can be run in Linux user space to communicate with
- * this the LKM.
- * @see http://www.derekmolloy.ie/ for a full description and follow-up descriptions.
+ * @brief   
+ * Linux loadable kernel module (LKM) for sha256 acceleator. This module maps to /dev/wssha256 and
+ * comes with a helper C program that can be run in Linux user space to communicate with this LKM.
+ * 
+ * Based on the BBB LED driver template by Derek Molloy
  */
  
 #include <linux/init.h>           // Macros used to mark up functions e.g. __init __exit
@@ -16,6 +16,14 @@
 #include <linux/kernel.h>         // Contains types, macros, functions for the kernel
 #include <linux/fs.h>             // Header for the Linux file system support
 #include <asm/uaccess.h>          // Required for the copy to user function
+#include <linux/io.h>
+
+// xilinx helper functions 
+#include <xsha256.h>
+
+
+// TODO this needs to be changed
+#define WSSHA256BASEADDR 0x43C00000
 
 #define  DEVICE_NAME "wssha256char"    ///< The device will appear at /dev/wssha256 using this value
 #define  CLASS_NAME  "wssha256"        ///< The device class -- this is a character device driver
@@ -25,13 +33,17 @@ MODULE_AUTHOR("Brett Nicholas");    ///< The author -- visible when you use modi
 MODULE_DESCRIPTION("A simple Linux char driver for wssha256 block in hardware");  ///< The description -- see modinfo
 MODULE_VERSION("0.1");            ///< A version number to inform users
  
-static int    majorNumber;                  ///< Stores the device number -- determined automatically
-static volatile char   message[256] = {0};           ///< Memory for the string that is passed from userspace
-static short  size_of_message;              ///< Used to remember the size of the string stored
-static int    numberOpens = 0;              ///< Counts the number of times the device is opened
+static int majorNumber;                  ///< Stores the device number -- determined automatically
+static void __iomem *vbaseaddr;          // void pointer to virtual memory mapped address for the device
+static volatile char message[256] = {0};           ///< Memory for the string that is passed from userspace
+static short size_of_message;              ///< Used to remember the size of the string stored
+volatile static int numberOpens = 0;              ///< Counts the number of times the device is opened
 static struct class*  wssha256charClass  = NULL; ///< The device-driver class struct pointer
 static struct device* wssha256charDevice = NULL; ///< The device-driver device struct pointer
  
+static XSha256 XShaInst; // instance pointer to use xilinx helper funcitons 
+
+
 // The prototype functions for the character driver -- must come before the struct definition
 static int     wssha256_open(struct inode *, struct file *);
 static int     wssha256_release(struct inode *, struct file *);
@@ -49,6 +61,7 @@ static struct file_operations fops =
    .release = wssha256_release,
 };
  
+
 /** @brief The LKM initialization function
  *  The static keyword restricts the visibility of the function to within this C file. The __init
  *  macro means that for a built-in driver (not a LKM) the function is only used at initialization
@@ -57,6 +70,12 @@ static struct file_operations fops =
  */
 static int __init wssha256_init(void){
    printk(KERN_INFO "wssha256: Initializing the wssha256 LKM\n");
+
+   // map device into memory 
+   // TODO dtc support
+   vbaseaddr = ioremap(WSSHA256BASEADDR, SZ_64K);
+//   XShaInst.
+   printk(KERN_INFO "\tphysical address = 0x%X\nvirtual address = 0x%X\n", WSSHA256BASEADDR,vbaseaddr);
  
    // Try to dynamically allocate a major number for the device -- more difficult but worth it
    majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
@@ -93,6 +112,7 @@ static int __init wssha256_init(void){
  *  code is used for a built-in driver (not a LKM) that this function is not required.
  */
 static void __exit wssha256_exit(void){
+   iounmap(vbaseaddr); // unmap device IO memory 
    device_destroy(wssha256charClass, MKDEV(majorNumber, 0));     // remove the device
    class_unregister(wssha256charClass);                          // unregister the device class
    class_destroy(wssha256charClass);                             // remove the device class
@@ -107,6 +127,11 @@ static void __exit wssha256_exit(void){
  *  @param filep A pointer to a file object (defined in linux/fs.h)
  */
 static int wssha256_open(struct inode *inodep, struct file *filep){
+   //if (numberOpens > 0)
+   //{
+   //  printk(KERN_INFO "Error: device already open\n");
+   //  return -EBUSY;
+   //}
    numberOpens++;
    printk(KERN_INFO "wssha256: Device has been opened %d time(s)\n", numberOpens);
    return 0;

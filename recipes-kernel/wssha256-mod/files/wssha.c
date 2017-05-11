@@ -20,7 +20,13 @@ int32_t sha256(uint8_t *datap, uint64_t datalen,
 	// Initialize the Device
 	int status = XSha256_Initialize(&xsha256, "wssha256uio");
 	if (status != XST_SUCCESS) {
-		printf("ERROR: Could not initialize accelerator.\n\r");
+		printf("ERROR: Could not initialize accelerator: ");
+    if (status == XST_DEVICE_NOT_FOUND)
+		  printf("Device not found\n");
+    else if (status == XST_OPEN_DEVICE_FAILED)
+      printf("Failed to open device\n");
+    else 
+      printf("Unidentified Error\n");
 		exit(-1);
 	}
 
@@ -54,11 +60,11 @@ int32_t sha256(uint8_t *datap, uint64_t datalen,
 	memcpy((void *)digestp, (void*)digest, SHA256_HASHSIZE);
 
   // release the accelerator because we are done
-  if (XSha256_Release(&xsha256) != XST_SUCCESS)
-  {
-    printf("Error releasing SHA engine!\r\n");
-    exit(-1);
-  }
+//  if (XSha256_Release(&xsha256) != XST_SUCCESS)
+//  {
+//    printf("Error releasing SHA engine!\r\n");
+//    exit(-1);
+//  }
 
 	return XST_SUCCESS;
 }
