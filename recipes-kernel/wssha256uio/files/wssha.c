@@ -18,7 +18,8 @@ int32_t sha256(uint8_t *datap, uint64_t datalen,
 	XSha256 xsha256;
 
 	// Initialize the Device
-	int status = XSha256_Initialize(&xsha256, "wssha256uio");
+  printf("Initializing device...\n");
+	int status = XSha256_Initialize(&xsha256, "sha256");
 	if (status != XST_SUCCESS) {
 		printf("ERROR: Could not initialize accelerator: ");
     if (status == XST_DEVICE_NOT_FOUND)
@@ -29,6 +30,7 @@ int32_t sha256(uint8_t *datap, uint64_t datalen,
       printf("Unidentified Error\n");
 		exit(-1);
 	}
+  printf("Device Initialized!\n");
 
 	// Digest size is constant: 32 bytes
 	*digest_lenp = SHA256_HASHSIZE;
@@ -53,8 +55,10 @@ int32_t sha256(uint8_t *datap, uint64_t datalen,
 	XSha256_Set_bytes(&xsha256, (uint32_t)datalen);
 
 	// Start the accelerator to compute the hash, and wait for it to finish
+  printf("starting accelerator!\n");
 	XSha256_Start(&xsha256);
 	while( !XSha256_IsDone(&xsha256));
+  printf("Done!\n");
 
 	// copy the resulting hash into the destination
 	memcpy((void *)digestp, (void*)digest, SHA256_HASHSIZE);
