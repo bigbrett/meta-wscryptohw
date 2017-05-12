@@ -69,9 +69,8 @@ typedef struct {
 #define XSha256_ReadReg(BaseAddress, RegOffset) \
     *(volatile u32*)((BaseAddress) + (RegOffset))
 
-#define Xil_AssertVoid(expr)    printk(KERN_INFO "assertion\n")
-#define Xil_AssertNonvoid(expr) printk(KERN_INFO "assertion\n")
-//#define foo(x) ((x) > 32 ? (x) : (2 * (x)))
+#define Xil_AssertVoid(expr)    (expr) ? printk(KERN_INFO "true\n") : printk(KERN_INFO "false\n")
+#define Xil_AssertNonvoid(expr) (expr) ? printk(KERN_INFO "true\n") : printk(KERN_INFO "false\n")
 
 #define XST_SUCCESS             0
 #define XST_DEVICE_NOT_FOUND    2

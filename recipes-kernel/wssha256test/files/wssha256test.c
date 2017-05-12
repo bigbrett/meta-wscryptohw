@@ -15,30 +15,23 @@
 #include<string.h>
 #include<unistd.h>
 
+#define SHA256_MSG_SIZE 256
+#define SHA256_DGST_SIZE 32
 
-#define XSHA256_AXILITES_ADDR_AP_CTRL          0x000
-#define XSHA256_AXILITES_ADDR_GIE              0x004
-#define XSHA256_AXILITES_ADDR_IER              0x008
-#define XSHA256_AXILITES_ADDR_ISR              0x00c
-#define XSHA256_AXILITES_ADDR_BASE_OFFSET_DATA 0x200
-#define XSHA256_AXILITES_BITS_BASE_OFFSET_DATA 32
-#define XSHA256_AXILITES_ADDR_BYTES_DATA       0x208
-#define XSHA256_AXILITES_BITS_BYTES_DATA       32
-#define XSHA256_AXILITES_ADDR_DATA_BASE        0x100
-#define XSHA256_AXILITES_ADDR_DATA_HIGH        0x1ff
-#define XSHA256_AXILITES_WIDTH_DATA            8
-#define XSHA256_AXILITES_DEPTH_DATA            256
-#define XSHA256_AXILITES_ADDR_DIGEST_BASE      0x220
-#define XSHA256_AXILITES_ADDR_DIGEST_HIGH      0x23f
-#define XSHA256_AXILITES_WIDTH_DIGEST          8
-#define XSHA256_AXILITES_DEPTH_DIGEST          32
-
-#define BUFFER_LENGTH 256               ///< The buffer length (crude but fine)
-
-static char receive[BUFFER_LENGTH];     ///< The receive buffer from the LKM
-static char stringToSend[BUFFER_LENGTH] = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse ac tellus id nibh fringilla sodales. Suspendisse congue erat nec aliquam finibus. Mauris porttitor dapibus malesuada. Duis ut sagittis odio. Sed finibus, eros sed posuere aenean suscipit.";
+static char digest[SHA256_DGST_SIZE];     ///< The receive buffer from the LKM
+static char msg[SHA256_MSG_SIZE]; 
 
 int main(){
+
+	memset((void*)digest,0,SHA256_DGST_SIZE);
+
+	// Fill data buffer with something interesting to hash
+	for (int i=0; i<SHA256_MSG_SIZE; i++) {
+		msg[i] = 'A'+(i%26);
+		printf("%c",msg[i]);
+	}
+  printf("\n\n");
+
    int ret, fd;
    printf("Starting device test code example...\n");
    fd = open("/dev/wssha256char", O_RDWR);             // Open the device with read/write access
@@ -46,22 +39,25 @@ int main(){
       perror("Failed to open the device...");
       return errno;
    }
-   printf("Writing message to the device [%s].\n", stringToSend);
-   ret = write(fd, stringToSend, strlen(stringToSend)); // Send the string to the LKM
+
+   printf("Writing message to the device [%s].\n", msg);
+   ret = write(fd, msg, strlen(msg)); // Send the string to the LKM
    if (ret < 0){
       perror("Failed to write the message to the device.");
       return errno;
    }
 
-   printf("Reading back from the device...\n");
+	 printf("Sleeping for 2 seconds...\n");
+	 sleep(2); 
 
-   ret = read(fd, receive, BUFFER_LENGTH);        // Read the response from the LKM
+   printf("Reading back from the device...\n");
+   ret = read(fd, digest, SHA256_DGST_SIZE);        // Read the response from the LKM
    if (ret < 0){
       perror("Failed to read the message from the device.");
       return errno;
    }
 
-   printf("The received message is: [%s]\n", receive);
+   printf("The received message is: [%s]\n", digest);
    printf("End of the program\n");
    return 0;
 }
