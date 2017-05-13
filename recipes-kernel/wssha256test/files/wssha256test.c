@@ -29,10 +29,7 @@ int main(){
   printf("Data to hash:\n");
   for (int i=0; i<SHA256_MSG_SIZE; i++) {
     msg[i] = 'A'+(i%26);
-    printf("%2X",msg[i]);
   }
-  //msg[SHA256_MSG_SIZE-1] = 0;
-  fflush(stdout);
 
   int ret, fd;
   printf("Starting device test code example...\n");
