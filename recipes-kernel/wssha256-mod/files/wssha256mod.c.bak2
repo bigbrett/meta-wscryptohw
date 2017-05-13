@@ -87,8 +87,8 @@ static int __init wssha256_init(void){
 
 	// map device into memory and initialize structure
 	// TODO dtc support
-	vbaseaddr = ioremap(WSSHA256BASEADDR, SZ_64K);
-  printk(KERN_INFO "Virtual Address = 0x%X\n",vbaseaddr);
+	vbaseaddr = ioremap_nocache(WSSHA256BASEADDR, SZ_64K);
+  // init hardware parameters 
 
 	// Try to dynamically allocate a major number for the device -- more difficult but worth it
 	majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
@@ -197,19 +197,15 @@ static ssize_t wssha256_write(struct file *filep, const char *buffer, size_t len
                                     0);
             
   // init hardware parameters 
-  iowrite32(SHA256_MSG_SIZE, vbaseaddr+XSHA256_AXILITES_ADDR_BYTES_DATA);// set bytes to 256
-	printk(KERN_INFO "1 iowrite done\n");
+  iowrite32(SHA256_MSG_SIZE, vbaseaddr+XSHA256_AXILITES_ADDR_BYTES_DATA); // set bytes to 256
   iowrite32(0, vbaseaddr+XSHA256_AXILITES_ADDR_BASE_OFFSET_DATA); // set offset to 0 
-	printk(KERN_INFO "2 iowrites done\n");
 
 	printk(KERN_INFO "writing data recevied from user\n");
 	// copy data from userspace into kernel message buffer
 	copy_from_user(message, buffer, len);
-  printk(KERN_INFO "after copy\n");
-  
+
   // write data from kernel message buffer to PL peripheral "message" register region
-  memcpy_toio(vbaseaddr+XSHA256_AXILITES_ADDR_DATA_BASE, message, SHA256_MSG_SIZE);
-  printk(KERN_INFO "after memcpy_toio\n");
+  memcpy_toio(vbaseaddr+ XSHA256_AXILITES_ADDR_DATA_BASE, message, SHA256_MSG_SIZE);
 
   // start AES block using read-modify-write on ap_ctrl register
   unsigned int ctrl_reg = ioread32(vbaseaddr + XSHA256_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit

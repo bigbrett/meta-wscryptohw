@@ -294,8 +294,9 @@ u32 XSha256_Read_digest_Bytes(XSha256 *InstancePtr, int offset, char *data, int 
     if ((offset + length) > (XSHA256_AXILITES_ADDR_DIGEST_HIGH - XSHA256_AXILITES_ADDR_DIGEST_BASE + 1))
         return 0;
 
+    printk(KERN_INFO "to [0x%X] from [0x%X]\n",data,InstancePtr->Axilites_BaseAddress+XSHA256_AXILITES_ADDR_DIGEST_BASE+offset);
     printk(KERN_INFO "leggo..\n");
-    memcpy_fromio((void*)data, (void *)(InstancePtr->Axilites_BaseAddress + XSHA256_AXILITES_ADDR_DIGEST_BASE + offset), 8);
+    //memcpy_fromio((void*)data, (void *)(InstancePtr->Axilites_BaseAddress + XSHA256_AXILITES_ADDR_DIGEST_BASE + offset), 8);
     printk(KERN_INFO "done..\n");
     //for (i = 0; i < length; i++) {
     //   printk(KERN_INFO "reading data at 0x%X\n",data+i); 

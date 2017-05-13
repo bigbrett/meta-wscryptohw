@@ -18,27 +18,18 @@
 #include <asm/uaccess.h>          // Required for the copy to user function
 #include <linux/io.h>
 
+// xilinx helper functions 
+#include <xsha256.h>
+
 // TODO this needs to be changed...we should not be hardcoding these
 #define WSSHA256BASEADDR 0x43C00000
-#define XSHA256_AXILITES_ADDR_AP_CTRL          0x000
-#define XSHA256_AXILITES_ADDR_GIE              0x004
-#define XSHA256_AXILITES_ADDR_IER              0x008
-#define XSHA256_AXILITES_ADDR_ISR              0x00c
-#define XSHA256_AXILITES_ADDR_BASE_OFFSET_DATA 0x200
-#define XSHA256_AXILITES_BITS_BASE_OFFSET_DATA 32
-#define XSHA256_AXILITES_ADDR_BYTES_DATA       0x208
-#define XSHA256_AXILITES_BITS_BYTES_DATA       32
-#define XSHA256_AXILITES_ADDR_DATA_BASE        0x100
-#define XSHA256_AXILITES_ADDR_DATA_HIGH        0x1ff
-#define XSHA256_AXILITES_WIDTH_DATA            8
-#define XSHA256_AXILITES_DEPTH_DATA            256
-#define XSHA256_AXILITES_ADDR_DIGEST_BASE      0x220
-#define XSHA256_AXILITES_ADDR_DIGEST_HIGH      0x23f
-#define XSHA256_AXILITES_WIDTH_DIGEST          8
-#define XSHA256_AXILITES_DEPTH_DIGEST          32
-
 #define SHA256_DGST_SIZE 32 
 #define SHA256_MSG_SIZE  256
+
+// IOCTL modes to write 
+//#define IOCTL_SET_DIGEST _IOW(MAJOR_NUM,  0, uint32_t)
+//#define IOCTL_SET_MSG    _IOW(MAJOR_NUM,  1, uint32_t)
+//#define IOCTL_START      _IOW(MAJOR_NUM,  2, uint32_t)
 
 #define  DEVICE_NAME "wssha256char"    ///< The device will appear at /dev/wssha256 using this value
 #define  CLASS_NAME  "wssha256"        ///< The device class -- this is a character device driver
@@ -49,12 +40,15 @@ MODULE_DESCRIPTION("A simple Linux char driver for wssha256 block in hardware");
 MODULE_VERSION("0.1");            ///< A version number to inform users
 
 static int majorNumber;                  ///< Stores the device number -- determined automatically
-static void __iomem *vbaseaddr = NULL;          // void pointer to virtual memory mapped address for the device
+static void __iomem *vbaseaddr;          // void pointer to virtual memory mapped address for the device
 static volatile char message[SHA256_MSG_SIZE] = {0}; ///< Memory for the string (message)that is passed from userspace
 static volatile char digest[SHA256_DGST_SIZE] = {0}; ///< Memory for the string (digest) that is passed back to userspace
+static short size_of_message;              ///< Used to remember the size of the string stored
 volatile static int numberOpens = 0;              ///< Counts the number of times the device is opened
 static struct class*  wssha256charClass  = NULL; ///< The device-driver class struct pointer
 static struct device* wssha256charDevice = NULL; ///< The device-driver device struct pointer
+
+static XSha256 XShaInst; // instance pointer to use xilinx helper funcitons 
 
 
 // The prototype functions for the character driver -- must come before the struct definition
@@ -62,7 +56,6 @@ static int     wssha256_open(struct inode *, struct file *);
 static int     wssha256_release(struct inode *, struct file *);
 static ssize_t wssha256_read(struct file *, char *, size_t, loff_t *);
 static ssize_t wssha256_write(struct file *, const char *, size_t, loff_t *);
-
 
 /** @brief Devices are represented as file structure in the kernel. The file_operations structure from
  *  /linux/fs.h lists the callback functions that you wish to associated with your file operations *  using a C99 syntax structure. char devices usually implement open, read, write and release calls
@@ -88,7 +81,10 @@ static int __init wssha256_init(void){
 	// map device into memory and initialize structure
 	// TODO dtc support
 	vbaseaddr = ioremap(WSSHA256BASEADDR, SZ_64K);
-  printk(KERN_INFO "Virtual Address = 0x%X\n",vbaseaddr);
+	XShaInst.Axilites_BaseAddress = vbaseaddr;
+	XShaInst.IsReady = 1;
+
+	printk(KERN_INFO "\tphysical address = 0x%X\nvirtual address = 0x%X\n", WSSHA256BASEADDR, XShaInst.Axilites_BaseAddress);
 
 	// Try to dynamically allocate a major number for the device -- more difficult but worth it
 	majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
@@ -140,11 +136,11 @@ static void __exit wssha256_exit(void){
  *  @param filep A pointer to a file object (defined in linux/fs.h)
  */
 static int wssha256_open(struct inode *inodep, struct file *filep){
-	if (numberOpens > 0)
-	{
-	  printk(KERN_INFO "Error: device already open\n");
-	  return -EBUSY;
-	}
+	//if (numberOpens > 0)
+	//{
+	//  printk(KERN_INFO "Error: device already open\n");
+	//  return -EBUSY;
+	//}
 	numberOpens++;
 	printk(KERN_INFO "wssha256: Device has been opened %d time(s)\n", numberOpens);
 	return 0;
@@ -159,19 +155,18 @@ static int wssha256_open(struct inode *inodep, struct file *filep){
  *  @param len The length of the buffer
  *  @param offset The offset if required
  */
-static ssize_t wssha256_read(struct file *filep, char *buffer, size_t len, loff_t *offset)
-{
+static ssize_t wssha256_read(struct file *filep, char *buffer, size_t len, loff_t *offset){
 	int error_count = 0;
-  
+	printk(KERN_INFO "executing copy to user\n");
 	// Read digest from hardware 
-  memcpy_fromio(digest, vbaseaddr+XSHA256_AXILITES_ADDR_DIGEST_BASE, SHA256_DGST_SIZE);
-
-  // Copy digest back into userspace (*to,*from,size)
-  error_count = copy_to_user(buffer, digest, len);
+  XSha256_Read_digest_Bytes(&XShaInst, 0, &digest, SHA256_DGST_SIZE);
+  // Copy digest back into userspace
+	// copy_to_user has the format ( * to, *from, size) and returns 0 on success
+	error_count = copy_to_user(buffer, digest, SHA256_DGST_SIZE);
 
 	if (error_count==0){            // if true then have success
-		printk(KERN_INFO "wssha256: Sent %d characters to the user\n", len);
-		return len;  // clear the position to the start and return 0
+		printk(KERN_INFO "wssha256: Sent %d characters to the user\n", SHA256_DGST_SIZE);
+		return (size_of_message=0);  // clear the position to the start and return 0
 	}
 	else {
 		printk(KERN_INFO "wssha256: Failed to send %d characters to the user\n", error_count);
@@ -188,33 +183,13 @@ static ssize_t wssha256_read(struct file *filep, char *buffer, size_t len, loff_
  *  @param len The length of the array of data that is being passed in the const char buffer
  *  @param offset The offset if required
  */
-static ssize_t wssha256_write(struct file *filep, const char *buffer, size_t len, loff_t *offset)
-{  
-  printk(KERN_INFO "initializing parameters \n\t0x%X <-- %d\n\t0x%X <-- %d\n",
-                                    vbaseaddr+XSHA256_AXILITES_ADDR_BYTES_DATA, 
-                                    SHA256_MSG_SIZE,
-                                    vbaseaddr+XSHA256_AXILITES_ADDR_BASE_OFFSET_DATA,
-                                    0);
-            
-  // init hardware parameters 
-  iowrite32(SHA256_MSG_SIZE, vbaseaddr+XSHA256_AXILITES_ADDR_BYTES_DATA);// set bytes to 256
-	printk(KERN_INFO "1 iowrite done\n");
-  iowrite32(0, vbaseaddr+XSHA256_AXILITES_ADDR_BASE_OFFSET_DATA); // set offset to 0 
-	printk(KERN_INFO "2 iowrites done\n");
-
-	printk(KERN_INFO "writing data recevied from user\n");
-	// copy data from userspace into kernel message buffer
-	copy_from_user(message, buffer, len);
-  printk(KERN_INFO "after copy\n");
-  
-  // write data from kernel message buffer to PL peripheral "message" register region
-  memcpy_toio(vbaseaddr+XSHA256_AXILITES_ADDR_DATA_BASE, message, SHA256_MSG_SIZE);
-  printk(KERN_INFO "after memcpy_toio\n");
-
-  // start AES block using read-modify-write on ap_ctrl register
-  unsigned int ctrl_reg = ioread32(vbaseaddr + XSHA256_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
-  iowrite32(ctrl_reg | 0x01, vbaseaddr + XSHA256_AXILITES_ADDR_AP_CTRL);
-
+static ssize_t wssha256_write(struct file *filep, const char *buffer, size_t len, loff_t *offset){
+	printk(KERN_INFO "executing copy from user\n");
+	// copy_from_user has the format ( * to, *from, size) and returns 0 on success
+	copy_from_user(&message, buffer, len);
+  // write data into message memory area
+  XSha256_Write_data_Words(&XShaInst, 0, &message, SHA256_MSG_SIZE);
+	size_of_message = strlen(message);                 // store the length of the stored message
 	printk(KERN_INFO "wssha256: Received %zu characters from the user\n", len);
 	return len;
 }
@@ -226,10 +201,29 @@ static ssize_t wssha256_write(struct file *filep, const char *buffer, size_t len
  *  @param filep A pointer to a file object (defined in linux/fs.h)
  */
 static int wssha256_release(struct inode *inodep, struct file *filep){
-	//printk(KERN_INFO "wssha256: Device successfully closed\n");
+	printk(KERN_INFO "wssha256: Device successfully closed\n");
 	return 0;
 }
 
+
+//long wssha256_ioctl(struct file *filep, unsigned int ioctl_num, unsigned long ioctl_param)
+//{
+//	switch(ioctl_num) 
+//  {
+//		case IOCTL_SET_DIGEST:
+//			printk(KERN_INFO "IOCTL set digest\n");
+//			break;
+//
+//		case IOCTL_SET_MSG:
+//			printk(KERN_INFO "IOCTL set msg\n");
+//			break;
+//
+//		case IOCTL_SET_COLPD:
+//			printk(KERN_INFO "IOCTL start\n");
+//			break;
+//	}
+//	return 0;
+//}
 
 
 /** @brief A module must use the module_init() module_exit() macros from linux/init.h, which

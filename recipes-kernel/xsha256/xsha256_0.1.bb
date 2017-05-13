@@ -17,10 +17,11 @@ SRC_URI = "file://xsha256.c \
 S = "${WORKDIR}"
 
 do_compile() {
-	     ${CC} xsha256.c xsha256_linux.c -o xsha256 ${LDFLAGS}
+	     ${CC} -c xsha256_linux.c xsha256.c
+       ${AR} -rcvs libxsha256.a xsha256.o xsha256_linux.o
 }
 
 do_install() {
 	     install -d ${D}${bindir}
-	     install -m 0755 xsha256 ${D}${bindir}
+	     install -m 0755 libxsha256.a ${D}${bindir}
 }
