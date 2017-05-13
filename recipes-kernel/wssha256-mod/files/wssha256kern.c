@@ -82,13 +82,24 @@ static struct file_operations fops =
  *  time and that it can be discarded and its memory freed up after that point.
  *  @return returns 0 if successful
  */
-static int __init wssha256_init(void){
+static int __init wssha256_init(void)
+{
 	printk(KERN_INFO "wssha256: Initializing the wssha256 LKM\n");
 
-	// map device into memory and initialize structure
-	// TODO dtc support
+	// request physical memory for driver 
+	if (!request_mem_region(WSSHA256BASEADDR, SZ_64K, "wssha256")) {
+		printk(KERN_INFO "wssha256 failed to request memory region\n");
+		return -EBUSY;
+	}
+	// map reserved physical memory into into virtual memory TODO dtc support
 	vbaseaddr = ioremap(WSSHA256BASEADDR, SZ_64K);
-  printk(KERN_INFO "Virtual Address = 0x%X\n",vbaseaddr);
+	if (! vbaseaddr) {
+		printk(KERN_INFO "wssha256 unable to map virual memory\n");
+		release_mem_region(WSSHA256BASEADDR, SZ_64K);
+		return -EBUSY;
+	}
+	vbaseaddr = ioremap(WSSHA256BASEADDR, SZ_64K);
+	printk(KERN_INFO "wssha256: Virtual Address = 0x%X\n",vbaseaddr);
 
 	// Try to dynamically allocate a major number for the device -- more difficult but worth it
 	majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
@@ -102,7 +113,7 @@ static int __init wssha256_init(void){
 	wssha256charClass = class_create(THIS_MODULE, CLASS_NAME);
 	if (IS_ERR(wssha256charClass)){                // Check for error and clean up if there is
 		unregister_chrdev(majorNumber, DEVICE_NAME);
-		printk(KERN_ALERT "Failed to register device class\n");
+		printk(KERN_ALERT "wssha256: Failed to register device class\n");
 		return PTR_ERR(wssha256charClass);          // Correct way to return an error on a pointer
 	}
 	printk(KERN_INFO "wssha256: device class registered correctly\n");
@@ -112,10 +123,15 @@ static int __init wssha256_init(void){
 	if (IS_ERR(wssha256charDevice)){               // Clean up if there is an error
 		class_destroy(wssha256charClass);           // Repeated code but the alternative is goto statements
 		unregister_chrdev(majorNumber, DEVICE_NAME);
-		printk(KERN_ALERT "Failed to create the device\n");
+		printk(KERN_ALERT "wssha256: Failed to create the device\n");
 		return PTR_ERR(wssha256charDevice);
 	}
 	printk(KERN_INFO "wssha256: device class created correctly\n"); // Made it! device was initialized
+
+  // init hardware parameters 
+  printk(KERN_INFO "wssha256: initializing wssha256 block for 256-byte message length, and 0 offset\n");
+	iowrite32(SHA256_MSG_SIZE, vbaseaddr+XSHA256_AXILITES_ADDR_BYTES_DATA);// set bytes to 256
+	iowrite32(0, vbaseaddr+XSHA256_AXILITES_ADDR_BASE_OFFSET_DATA); // set offset to 0 
 	return 0;
 }
 
@@ -126,6 +142,7 @@ static int __init wssha256_init(void){
  */
 static void __exit wssha256_exit(void){
 	iounmap(vbaseaddr); // unmap device IO memory 
+	release_mem_region(WSSHA256BASEADDR, SZ_64K);
 	device_destroy(wssha256charClass, MKDEV(majorNumber, 0));     // remove the device
 	class_unregister(wssha256charClass);                          // unregister the device class
 	class_destroy(wssha256charClass);                             // remove the device class
@@ -142,8 +159,8 @@ static void __exit wssha256_exit(void){
 static int wssha256_open(struct inode *inodep, struct file *filep){
 	if (numberOpens > 0)
 	{
-	  printk(KERN_INFO "Error: device already open\n");
-	  return -EBUSY;
+		printk(KERN_INFO "wssha256: Error: device already open\n");
+		return -EBUSY;
 	}
 	numberOpens++;
 	printk(KERN_INFO "wssha256: Device has been opened %d time(s)\n", numberOpens);
@@ -161,22 +178,14 @@ static int wssha256_open(struct inode *inodep, struct file *filep){
  */
 static ssize_t wssha256_read(struct file *filep, char *buffer, size_t len, loff_t *offset)
 {
-	int error_count = 0;
-  
-	// Read digest from hardware 
-  memcpy_fromio(digest, vbaseaddr+XSHA256_AXILITES_ADDR_DIGEST_BASE, SHA256_DGST_SIZE);
+	// Read digest from PL  
+	memcpy_fromio(digest, vbaseaddr+XSHA256_AXILITES_ADDR_DIGEST_BASE, SHA256_DGST_SIZE);
 
-  // Copy digest back into userspace (*to,*from,size)
-  error_count = copy_to_user(buffer, digest, len);
+	// Copy digest back into userspace (*to,*from,size)
+	copy_to_user(buffer, digest, len);
 
-	if (error_count==0){            // if true then have success
-		printk(KERN_INFO "wssha256: Sent %d characters to the user\n", len);
-		return len;  // clear the position to the start and return 0
-	}
-	else {
-		printk(KERN_INFO "wssha256: Failed to send %d characters to the user\n", error_count);
-		return -EFAULT;              // Failed -- return a bad address message (i.e. -14)
-	}
+  printk(KERN_INFO "wssha256: Copied digest of length %d bytes back to userspace\n", len);
+  return len;  // clear the position to the start and return 0
 }
 
 
@@ -190,32 +199,23 @@ static ssize_t wssha256_read(struct file *filep, char *buffer, size_t len, loff_
  */
 static ssize_t wssha256_write(struct file *filep, const char *buffer, size_t len, loff_t *offset)
 {  
-  printk(KERN_INFO "initializing parameters \n\t0x%X <-- %d\n\t0x%X <-- %d\n",
-                                    vbaseaddr+XSHA256_AXILITES_ADDR_BYTES_DATA, 
-                                    SHA256_MSG_SIZE,
-                                    vbaseaddr+XSHA256_AXILITES_ADDR_BASE_OFFSET_DATA,
-                                    0);
-            
-  // init hardware parameters 
-  iowrite32(SHA256_MSG_SIZE, vbaseaddr+XSHA256_AXILITES_ADDR_BYTES_DATA);// set bytes to 256
-	printk(KERN_INFO "1 iowrite done\n");
-  iowrite32(0, vbaseaddr+XSHA256_AXILITES_ADDR_BASE_OFFSET_DATA); // set offset to 0 
-	printk(KERN_INFO "2 iowrites done\n");
+	// init hardware parameters 
+	iowrite32(SHA256_MSG_SIZE, vbaseaddr+XSHA256_AXILITES_ADDR_BYTES_DATA);// set bytes to 256
+	iowrite32(0, vbaseaddr+XSHA256_AXILITES_ADDR_BASE_OFFSET_DATA); // set offset to 0 
 
-	printk(KERN_INFO "writing data recevied from user\n");
+	printk(KERN_INFO "wssha256: Copying message from userspace buffer into PL\n");
+
 	// copy data from userspace into kernel message buffer
 	copy_from_user(message, buffer, len);
-  printk(KERN_INFO "after copy\n");
-  
-  // write data from kernel message buffer to PL peripheral "message" register region
-  memcpy_toio(vbaseaddr+XSHA256_AXILITES_ADDR_DATA_BASE, message, SHA256_MSG_SIZE);
-  printk(KERN_INFO "after memcpy_toio\n");
 
-  // start AES block using read-modify-write on ap_ctrl register
-  unsigned int ctrl_reg = ioread32(vbaseaddr + XSHA256_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
-  iowrite32(ctrl_reg | 0x01, vbaseaddr + XSHA256_AXILITES_ADDR_AP_CTRL);
+	// write data from kernel message buffer to PL peripheral "message" register region
+	memcpy_toio(vbaseaddr+XSHA256_AXILITES_ADDR_DATA_BASE, message, SHA256_MSG_SIZE);
 
-	printk(KERN_INFO "wssha256: Received %zu characters from the user\n", len);
+	// start AES block using read-modify-write on ap_ctrl register
+	unsigned int ctrl_reg = ioread32(vbaseaddr + XSHA256_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
+	iowrite32(ctrl_reg | 0x01, vbaseaddr + XSHA256_AXILITES_ADDR_AP_CTRL);
+
+	printk(KERN_INFO "wssha256: Received message of length %zu bytes from userspace\n", len);
 	return len;
 }
 
@@ -226,7 +226,8 @@ static ssize_t wssha256_write(struct file *filep, const char *buffer, size_t len
  *  @param filep A pointer to a file object (defined in linux/fs.h)
  */
 static int wssha256_release(struct inode *inodep, struct file *filep){
-	//printk(KERN_INFO "wssha256: Device successfully closed\n");
+	printk(KERN_INFO "wssha256: Device successfully closed\n");
+	numberOpens--;
 	return 0;
 }
 

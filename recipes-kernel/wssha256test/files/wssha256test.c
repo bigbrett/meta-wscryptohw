@@ -45,19 +45,16 @@ int main(){
     return errno;
   }
 
-  //memset(msg,0,SHA256_MSG_SIZE);
-  //printf("Message Cleared\n");
-  //for (int i=0; i<SHA256_MSG_SIZE; i++)
-  //  printf("%X", msg[i]);
-  //printf("\n...reading...\n");
-  //fflush(stdout);
-
   ret = read(fd, digest, SHA256_DGST_SIZE);        // Read the response from the LKM
   if (ret < 0){
     perror("Failed to read the message from the device.");
     return errno;
   }
 
+  if(close(fd)<0)
+    perror("Error closing file");
+
+  
   printf("*The received message is:\n");
   for (int i=0; i<SHA256_DGST_SIZE; i++)
     printf("%X ", digest[i]);
