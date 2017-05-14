@@ -18,9 +18,8 @@
 #define SHA256_MSG_SIZE 256
 #define SHA256_DGST_SIZE 32
 
-static char digest[SHA256_DGST_SIZE];     ///< The receive buffer from the LKM
+static volatile char digest[SHA256_DGST_SIZE];     ///< The receive buffer from the LKM
 static char messages[3][SHA256_MSG_SIZE];
-static char message[SHA256_MSG_SIZE];
 static const char correct[3][SHA256_DGST_SIZE] = { 
   {0x67,0xf0,0x22,0x19,0x5e,0xe4,0x05,0x14,0x29,0x68,0xca,0x1b,0x53,0xae,0x25,0x13,0xa8,0xba,0xb0,0x40,0x4d,0x70,0x57,0x77,0x85,0x31,0x6f,0xa9,0x52,0x18,0xe8,0xba},
   {0x6c,0x50,0x76,0x06,0x1b,0x0c,0xc3,0x1f,0x39,0x87,0x76,0x7c,0x06,0x2c,0xd1,0x33,0xab,0x13,0x07,0x34,0xa0,0xb8,0x18,0x4c,0x65,0xd0,0x65,0x88,0x18,0x23,0xb9,0x92 },
@@ -57,16 +56,10 @@ int main()
     // Print message to hash
     printf("Data to hash:\n");
     for (int i=0; i<SHA256_MSG_SIZE; i++) 
-    {
-      //if (messages[testnum][i] < 48)
-      //  printf("%u",(unsigned int)messages[testnum][i]);
-      //else
         printf("%c",messages[testnum][i]);
-    }
     printf("\n");
 
     // send the test vector to LKM
-    //memcpy(message, messages[testnum],SHA256_MSG_SIZE);
     ret = write(fd, messages[testnum], SHA256_MSG_SIZE);
     if (ret < 0){
       perror("Failed to write the message to the device.");
@@ -79,7 +72,7 @@ int main()
       perror("Failed to read the message from the device.");
       return errno;
     }
-    printf("The received message is: ");
+    printf("The received digest is: ");
     for (int i=0; i<SHA256_DGST_SIZE; i++)
       printf("%X ", digest[i]);
     printf("\n");
@@ -97,8 +90,6 @@ int main()
       
     // reset digest to all zeros
     memset((void*)digest,0,SHA256_DGST_SIZE);
-
-    sleep(1);
   }
 
   // close and exit
