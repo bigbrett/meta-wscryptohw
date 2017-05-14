@@ -1,4 +1,5 @@
-A Yocto meta-layer supporting the kernel driver for a memory-mapped sha256 hardware accelerator. 
+# meta-wssha256kern
+A Yocto meta-layer supporting the kernel driver for a memory-mapped sha256 hardware accelerator. Created by Brett Nicholas. 
 
 Dependencies
 ============
@@ -12,7 +13,7 @@ This layer depends on:
   layers: meta
   branch: master
 
-TODO: CUSTOM WS SOFTWARE LAYER
+  TODO: CUSTOM WS SOFTWARE LAYER
   URI: git://git.yoctoproject.org/xxxx
   layers: xxxx
   branch: master
