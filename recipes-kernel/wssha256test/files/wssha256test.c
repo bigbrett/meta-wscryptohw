@@ -27,7 +27,7 @@ static const char correct[3][SHA256_DGST_SIZE] = {
 
 int main()
 {
-  int ret, fd;
+  int ret, fd, errcnt;
 
   // create the three test vectors, one with all (ASCII) zeros, one with ABCDEFGH.., 
   // and one with ABCDEFGH... but with an ASCCI zero in the last element
@@ -50,11 +50,15 @@ int main()
     return errno;
   }
 
+  errcnt=0;
+
   // Run the three test cases
   for (int testnum=0; testnum<3; testnum++)
   {
+    printf("Test vector [%d]\n",testnum);
+    
     // Print message to hash
-    printf("Data to hash:\n");
+    printf("\tMessage to hash: ");
     for (int i=0; i<SHA256_MSG_SIZE; i++) 
         printf("%c",messages[testnum][i]);
     printf("\n");
@@ -66,27 +70,40 @@ int main()
       return errno;
     }
 
+    // TODO THIS SLEEP IS NECESSARY TO ENSURE THERE IS ENOUGH TIME FOR THE HW DEVICE TO COMPLETE.
+    // IT SHOULD BE REPLACED WITH A READY CHECK, TO BE IMPLEMENTED IN THE DRIVER USING IOCTL
+    sleep(1);
+
     // read back the response from the LKM and print
     ret = read(fd, digest, SHA256_DGST_SIZE);        
     if (ret < 0){
       perror("Failed to read the message from the device.");
       return errno;
     }
-    printf("The received digest is: ");
+    printf("\tThe received digest is: ");
     for (int i=0; i<SHA256_DGST_SIZE; i++)
       printf("%X ", digest[i]);
-    printf("\n");
+    printf("\n\n");
 
     // check against known solution
     for (int i=0; i<SHA256_DGST_SIZE; i++)
     {
       if (digest[i] != correct[testnum][i])
       {
-        printf("Error, incorrect digest value for test vector %d, element %i!",testnum,i);
-        return -1;
+        errcnt++;
+        printf("\t****Error, incorrect digest value for test vector %d, element %i!\n",testnum,i);
+
       }
     }
-    printf("****Test vector %d status: SUCCESS\n",testnum);
+
+    // report erroneous values
+    if (errcnt == 0)
+      printf("****Test vector %d status: SUCCESS\n\n",testnum);
+    else 
+    {
+      printf("****Test vector %d status: FAILED\n\n",testnum);
+      return -1; 
+    }
       
     // reset digest to all zeros
     memset((void*)digest,0,SHA256_DGST_SIZE);
