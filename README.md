@@ -13,11 +13,6 @@ This layer depends on:
   layers: meta
   branch: master
 
-  TODO: CUSTOM WS SOFTWARE LAYER
-  URI: git://git.yoctoproject.org/xxxx
-  layers: xxxx
-  branch: master
-
 
 Table of Contents
 =================
