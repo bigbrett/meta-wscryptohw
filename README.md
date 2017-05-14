@@ -22,15 +22,14 @@ Table of Contents
 =================
 
   I. Adding the wssha256kern layer to your build
+  
  II. Misc
 
 
 I. Adding the wssha256kern layer to your build
 =================================================
 
---- replace with specific instructions for the wssha256kern layer ---
-
-In order to use this layer, you need to make the build system aware of
+In order to use this layer, you need to make the Yocto build system aware of
 it.
 
 Assuming the wssha256kern layer exists at the top-level of your
@@ -51,9 +50,10 @@ other layers needed. e.g.:
 II. Misc
 ========
 
-Currently, the driver has the base address of the peripheral hard-coded, and does not use the built in device tree. It works, however could use much improvement. 
+Currently, the driver has the base address of the peripheral hard-coded, and does not use the built in device tree. It works, however could use much improvement. I'm sure there are many a lurking oops. There is also the possibility of using a linux device driver framework. 
 
 #TODO: 
-1. Integrate linux device tree support and structures (linux/of.h I think..)
+1. Userspace API for the openSSL engine
+2. Integrate linux device tree support and structures (linux/of.h I think..)
 2. Create helper functions to abstract away the different ways we might want to use the hardware blocks
-3. Userspace API? 
+
