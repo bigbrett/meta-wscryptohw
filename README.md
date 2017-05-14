@@ -1,8 +1,4 @@
-This README file contains information on the contents of the
-wssha256kern layer.
-
-Please see the corresponding sections below for details.
-
+A Yocto meta-layer supporting the kernel driver for a memory-mapped sha256 hardware accelerator. 
 
 Dependencies
 ============
@@ -16,18 +12,10 @@ This layer depends on:
   layers: meta
   branch: master
 
+TODO: CUSTOM WS SOFTWARE LAYER
   URI: git://git.yoctoproject.org/xxxx
   layers: xxxx
   branch: master
-
-
-Patches
-=======
-
-Please submit any patches against the wssha256kern layer to the
-xxxx mailing list (xxxx@zzzz.org) and cc: the maintainer:
-
-Maintainer: XXX YYYYYY <xxx.yyyyyy@zzzzz.com>
 
 
 Table of Contents
@@ -54,6 +42,8 @@ other layers needed. e.g.:
     /path/to/yocto/meta \
     /path/to/yocto/meta-poky \
     /path/to/yocto/meta-yocto-bsp \
+    /path/to/yocto/meta-xilinx
+    /path/to/yocto/meta-xilinx-tools
     /path/to/yocto/meta-wssha256kern \
     "
 
@@ -61,4 +51,9 @@ other layers needed. e.g.:
 II. Misc
 ========
 
---- replace with specific information about the wssha256kern layer ---
+Currently, the driver has the base address of the peripheral hard-coded, and does not use the built in device tree. It works, however could use much improvement. 
+
+#TODO: 
+1. Integrate linux device tree support and structures (linux/of.h I think..)
+2. Create helper functions to abstract away the different ways we might want to use the hardware blocks
+3. Userspace API? 
