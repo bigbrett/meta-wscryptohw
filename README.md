@@ -1,8 +1,9 @@
+[![experimental](http://badges.github.io/stability-badges/dist/experimental.svg)](http://github.com/badges/stability-badges)
+
 # meta-wssha256kern
 A Yocto meta-layer supporting the kernel driver for a memory-mapped sha256 hardware accelerator. Created by Brett Nicholas. 
 
 # Dependencies
-
 This layer depends on:
 ```
   URI: git://git.openembedded.org/bitbake
@@ -13,7 +14,6 @@ This layer depends on:
   branch: master
 ```
 # Table of Contents
-
   I. Adding the wssha256kern layer to your build
   
  II. Misc
@@ -45,6 +45,7 @@ Currently, the driver has the base address of the peripheral hard-coded, and doe
 
 ## TODO: 
 1. Userspace API for the openSSL engine
-2. Integrate linux device tree support and structures (linux/of.h I think..)
-2. Create helper functions to abstract away the different ways we might want to use the hardware blocks
+2. IOCTL to check if the hardware device is ready (or interrupt support)
+3. Integrate linux device tree support and structures (linux/of.h I think..)
+4. Create helper functions to abstract away the different ways we might want to use the hardware blocks
 
