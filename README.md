@@ -62,5 +62,25 @@ Currently, the driver has the base address of the peripheral hard-coded, and doe
 # 5. Notes
 Below are a series of notes to myself. They probably will mean nothing to you.
 
-* GNU_HASH ELF error
+### YOCTO BUILD ERRORS AND THEIR RESOLUTIONS
+when I first tried building the recipe, I got the following errors:
+```
+ERROR: wssha256engine-0.1-r0 do_package_qa: QA Issue: wssha256engine: The compile log indicates that host include and/or library paths were used.
+         Please check the log '/home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/temp/log.do_compile' for more information. [compile-host-path]
+ERROR: wssha256engine-0.1-r0 do_package_qa: QA Issue: No GNU_HASH in the elf binary: '/home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/packages-split/wssha256engine-dev/usr/lib/libwssha256engine.so' [ldflags]
+ERROR: wssha256engine-0.1-r0 do_package_qa: QA Issue: -dev package contains non-symlink .so: wssha256engine-dev path '/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/packages-split/wssha256engine-dev/usr/lib/libwssha256engine.so' [dev-elf]
+ERROR: wssha256engine-0.1-r0 do_package_qa: QA run found fatal errors. Please consider fixing them.
+ERROR: wssha256engine-0.1-r0 do_package_qa: Function failed: do_package_qa
+ERROR: Logfile of failure stored in: /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/temp/log.do_package_qa.19467
+ERROR: Task (/home/brett/Thesis/Zynq_Linux/Yocto/wslinux/meta-wssha256kern/recipes-kernel/wssha256engine/wssha256engine_0.1.bb:do_package_qa) failed with exit code '1'
+```
+Errors were resolved as follows:
 
+`ERROR: wssha256engine-0.1-r0 do_package_qa: QA Issue: wssha256engine: The compile log indicates that host include and/or library paths were used.`
+* Changed the -L${libdir} to -L=${libdir} In EXTRA_OECONF_append to make it sysroot relative (https://lists.yoctoproject.org/pipermail/yocto/2012-August/008906.html)
+
+`ERROR: wssha256engine-0.1-r0 do_package_qa: QA Issue: No GNU_HASH in the elf binary: '/home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/packages-split/wssha256engine-dev/usr/lib/libwssha256engine.so' [ldflags]`
+* Added ${LDFLAGS} to the override of makefile LIB variable in EXTRA_OECONF_append
+
+`ERROR: wssha256engine-0.1-r0 do_package_qa: QA Issue: -dev package contains non-symlink .so: wssha256engine-dev path '/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/packages-split/wssha256engine-dev/usr/lib/libwssha256engine.so' [dev-elf]`
+* Added `FILES_${PN} += "${libdir}/*.so"` and `FILES_SOLIBSDEV = ""` to recipe to ensure that the .so links weren't only included in ${PN}-dev
