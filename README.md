@@ -19,6 +19,8 @@ This layer depends on:
   1. Adding the wssha256kern layer to your build
   2. Testing the kernel driver
   3. Misc
+  4. TODO
+  5. Notes
 
 # 1. Adding the wssha256kern layer to your build
 
@@ -51,9 +53,14 @@ If the wssha256test recipe is not added to your build for some reason, you can m
 
 Currently, the driver has the base address of the peripheral hard-coded, and does not use the built in device tree. It works, however could use much improvement. I'm sure there are many a lurking oops. There is also the possibility of using a linux device driver framework. 
 
-## TODO: 
-1. Userspace API recipe (for the openSSL engine and test program)
+# 4. TODO 
+1. Userspace API recipe (for the openSSL engine and test program
 2. IOCTL to check if the hardware device is ready (or interrupt support)
 3. Integrate linux device tree support and structures (linux/of.h I think..)
 4. Create helper functions to abstract away the different ways we might want to use the hardware blocks
+
+# 5. Notes
+Below are a series of notes to myself. They probably will mean nothing to you.
+
+* GNU_HASH ELF error
 
