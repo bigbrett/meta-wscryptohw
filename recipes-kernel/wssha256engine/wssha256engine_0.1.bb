@@ -13,7 +13,11 @@ SRCREV = "${AUTOREV}"
 
 
 # Add the .so to the main package’s files list
-FILES_${PN} += "${libdir}/*.so"
+FILES_${PN} += " ${libdir} \
+                 ${bindir} \ 
+                 ${libdir}/*.so \
+                 ${bindir}/test "
+
 # Ensure that the DEV package doesn't grab them first
 # commenting this out did not change anything
 FILES_SOLIBSDEV = ""
@@ -38,6 +42,10 @@ EXTRA_OEMAKE = "'CC=${CC}' \
 #}
 
 do_install() {
+# install engine shared library
       install -d ${D}${libdir}
       install -m 0755 ${S}/bin/libwssha256engine.so ${D}${libdir}
+# install test binary
+      install -d ${D}${bindir}
+      install -m 0755 ${S}/bin/test ${D}{bindir}
 }
