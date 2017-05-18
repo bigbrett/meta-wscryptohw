@@ -39,13 +39,13 @@ Assuming the wssha256 layer exists at the top-level of your yocto build tree, yo
     /path/to/yocto/meta-wssha256 \
     "
 ```
-The output kernel driver binary can be found at `${WORKDIR}/wssha256.ko` and should be automatically installed in your image's /lib/modules folder. If you can't find it, try the following: 
+The output kernel driver binary can be found at `${WORKDIR}/wssha256kern.ko` and should be automatically installed in your image's /lib/modules folder. If you can't find it, try the following: 
 ```
-bitbake -e wssha256 | grep ^WORKDIR //first find the value of ${WORKDIR}
-find ${WORKDIR} -name "wssha256.ko" 
+bitbake -e wssha256-mod| grep ^WORKDIR //first find the value of ${WORKDIR}
+find ${WORKDIR} -name "wssha256kern.ko" 
 ```
 # 2. Testing the Kernel Driver
-The wssha256-mod kernel driver (wssha256.ko) contains a self-checking test program that can be run in userspace to test the correct operation of the driver. The test program is included in the recipe wssha256test. The test recipe should be automatically built after the wssha256 layer is added to your build. The output files are located at `${WORKDIR}/wssha256test`, or at `${WORKDIR}/image/usr/bin/wssha256test`. See the `wssha256test_${PV}.bb` file if you are unsure.
+The wssha256-mod kernel driver (wssha256kern.ko) contains a self-checking test program that can be run in userspace to test the correct operation of the driver. The test program is included in the recipe wssha256test. The test recipe should be automatically built after the wssha256 layer is added to your build. The output files are located at `${WORKDIR}/wssha256test`, or at `${WORKDIR}/image/usr/bin/wssha256test`. See the `wssha256test_${PV}.bb` file if you are unsure.
 
 If the wssha256test recipe is not added to your build for some reason, you can manually build it using the command `bitbake wssha256test`
 
