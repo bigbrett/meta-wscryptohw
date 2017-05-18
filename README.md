@@ -62,5 +62,55 @@ Currently, the driver has the base address of the peripheral hard-coded, and doe
 # 5. Notes
 Below are a series of notes to myself. They probably will mean nothing to you.
 
-* GNU_HASH ELF error
+## YOCTO BUILD ERRORS AND THEIR RESOLUTIONS
+### Recipe: wssha256engine
+#### Initial QA errors in do_compile 
+when I first tried building the recipe, I got the following errors:
+```
+ERROR: wssha256engine-0.1-r0 do_package_qa: QA Issue: wssha256engine: The compile log indicates that host include and/or library paths were used.
+         Please check the log '/home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/temp/log.do_compile' for more information. [compile-host-path]
+ERROR: wssha256engine-0.1-r0 do_package_qa: QA Issue: No GNU_HASH in the elf binary: '/home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/packages-split/wssha256engine-dev/usr/lib/libwssha256engine.so' [ldflags]
+ERROR: wssha256engine-0.1-r0 do_package_qa: QA Issue: -dev package contains non-symlink .so: wssha256engine-dev path '/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/packages-split/wssha256engine-dev/usr/lib/libwssha256engine.so' [dev-elf]
+ERROR: wssha256engine-0.1-r0 do_package_qa: QA run found fatal errors. Please consider fixing them.
+ERROR: wssha256engine-0.1-r0 do_package_qa: Function failed: do_package_qa
+ERROR: Logfile of failure stored in: /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/temp/log.do_package_qa.19467
+ERROR: Task (/home/brett/Thesis/Zynq_Linux/Yocto/wslinux/meta-wssha256kern/recipes-kernel/wssha256engine/wssha256engine_0.1.bb:do_package_qa) failed with exit code '1'
+```
+Errors were resolved as follows:
 
+`ERROR: wssha256engine-0.1-r0 do_package_qa: QA Issue: wssha256engine: The compile log indicates that host include and/or library paths were used.`
+* Changed the -L${libdir} to -L=${libdir} In EXTRA_OECONF_append to make it sysroot relative (https://lists.yoctoproject.org/pipermail/yocto/2012-August/008906.html)
+
+`ERROR: wssha256engine-0.1-r0 do_package_qa: QA Issue: No GNU_HASH in the elf binary: '/home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/packages-split/wssha256engine-dev/usr/lib/libwssha256engine.so' [ldflags]`
+* Added ${LDFLAGS} to the override of makefile LIB variable in EXTRA_OECONF_append
+
+`ERROR: wssha256engine-0.1-r0 do_package_qa: QA Issue: -dev package contains non-symlink .so: wssha256engine-dev path '/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/packages-split/wssha256engine-dev/usr/lib/libwssha256engine.so' [dev-elf]`
+* Added `FILES_${PN} += "${libdir}/*.so"` and `FILES_SOLIBSDEV = ""` to recipe to ensure that the .so links weren't only included in ${PN}-dev
+
+#### Error linking test script against libcrypto
+When I tried to build the test program using the Yocto flow, I got the following error 
+```
+| Building Tests...
+| arm-poky-linux-gnueabi-gcc  -march=armv7-a -marm -mfpu=neon  -mfloat-abi=hard -mcpu=cortex-a9 --sysroot=/home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/sysroots/zedboard-zynq7 -g -Wall test/wssha256engine_test.c -I include  -Llib -L=/usr/lib -Wl,-O1 -Wl,--hash-style=gnu -Wl,--as-needed -o bin/test
+| /tmp/ccYXjZxs.o: In function `main':
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:18: undefined reference to `OPENSSL_add_all_algorithms_noconf'
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:19: undefined reference to `ERR_load_crypto_strings'
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:22: undefined reference to `ENGINE_load_dynamic'
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:26: undefined reference to `ENGINE_by_id'
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:55: undefined reference to `ENGINE_ctrl_cmd_string'
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:56: undefined reference to `ENGINE_ctrl_cmd_string'
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:57: undefined reference to `ENGINE_ctrl_cmd_string'
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:66: undefined reference to `ENGINE_init'
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:72: undefined reference to `ENGINE_get_name'
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:83: undefined reference to `EVP_MD_CTX_create'
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:86: undefined reference to `EVP_sha256'
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:86: undefined reference to `EVP_DigestInit_ex'
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:88: undefined reference to `EVP_DigestUpdate'
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:90: undefined reference to `EVP_DigestFinal'
+| /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/git/test/wssha256engine_test.c:96: undefined reference to `EVP_MD_CTX_destroy'
+```
+This was resolved by properly linking against libcrypto. I originally added the systroot library directory to the library search paths, but forgot to actually link against libcrypto (which has the definitions for the EVP API. The solution is to to add `-lcrypto` to the makefile variable overrides:
+```
+EXTRA_OEMAKE = "'CC=${CC}' \
+                'LIB=-Llib -L=${libdir} ${LDFLAGS} -lcrypto'"
+```
