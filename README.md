@@ -114,7 +114,7 @@ This was resolved by properly linking against libcrypto. I originally added the 
 EXTRA_OEMAKE = "'CC=${CC}' \
                 'LIB=-Llib -L=${libdir} ${LDFLAGS} -lcrypto'"
 ```
-### QA issue when installing test binary in image
+#### QA issue when installing test binary in image
 ```
 ERROR: wssha256engine-0.1-r0 do_package: QA Issue: wssha256engine: Files/directories were installed but not shipped in any package:
   /usr/bin
