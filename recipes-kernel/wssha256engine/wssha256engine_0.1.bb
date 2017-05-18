@@ -15,19 +15,29 @@ SRCREV = "${AUTOREV}"
 # Add the .so to the main package’s files list
 FILES_${PN} += "${libdir}/*.so"
 # Ensure that the DEV package doesn't grab them first
+# commenting this out did not change anything
 FILES_SOLIBSDEV = ""
 
 S = "${WORKDIR}/git"
 
 # Override all the makefile variables for cross compilation
+PARALLEL_MAKE = ""
 EXTRA_OEMAKE = "'CC=${CC}' \
-                'LIB=-Llib -L=${libdir} ${LDFLAGS}'"
+                'LIB=-Llib -L=${libdir} ${LDFLAGS} -lcrypto'"
 
+#LIB = "-Llib -L=${libdir} ${LDFLAGS}"
+#INC = "-I include -I =/usr/include/openssl"
+#
 #do_compile() {
-#	     ${CC} wssha256engine.c -o wssha256engine.so ${LDFLAGS}
+## compile source code
+#      mkdir ${S}/build ${S}/bin
+#      ${CC} ${CFLAGS} -fPIC ${S}/src/wssha256engine.c -c -o ${S}/build/wssha256engine.o 
+#      ${CC} -shared -o ${S}/bin/libwssha256engine.so ${LIB} ${S}/build/wssha256engine.o
+## compile test TODO doesn't work
+#      ${CC} ${CFLAGS} -o ${S}/bin/test ${S}/test/wssha256engine_test.c ${INC} ${LIB} 
 #}
 
 do_install() {
-	     install -d ${D}${libdir}
-	     install -m 0755 ${S}/bin/libwssha256engine.so ${D}${libdir}
+      install -d ${D}${libdir}
+      install -m 0755 ${S}/bin/libwssha256engine.so ${D}${libdir}
 }
