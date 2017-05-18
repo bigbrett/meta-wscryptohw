@@ -125,7 +125,7 @@ ERROR: wssha256engine-0.1-r0 do_package: Function failed: do_package
 ERROR: Logfile of failure stored in: /home/brett/Thesis/Zynq_Linux/Yocto/wslinux/build/tmp/work/cortexa9hf-neon-poky-linux-gnueabi/wssha256engine/0.1-r0/temp/log.do_package.29073
 ERROR: Task (/home/brett/Thesis/Zynq_Linux/Yocto/wslinux/meta-wssha256kern/recipes-kernel/wssha256engine/wssha256engine_0.1.bb:do_package) failed with exit code '1'
 ```
-This was resolved by changing the FILES\_${PN} variable in the recipe from `FILES_${PN} += " ${libdir}/*.so`, to the following 
+This was resolved by adding the appropriate output directories to the package. Do this by changing the FILES\_${PN} variable in the recipe from `FILES_${PN} += " ${libdir}/*.so` to the following: 
 ```
 FILES_${PN} += " ${libdir} \
                  ${bindir} \ 
