@@ -8,6 +8,7 @@
 
 #define SHA256_MSG_SIZE 256
 #define SHA256_DGST_SIZE 32
+
 static volatile uint8_t digest[SHA256_DGST_SIZE];     ///< The receive buffer from the LKM
 static uint8_t messages[3][SHA256_MSG_SIZE];
 static const uint8_t correct[3][SHA256_DGST_SIZE] = { 
@@ -20,11 +21,8 @@ int main()
   int errcnt = 0;
   uint32_t digest_len = SHA256_DGST_SIZE; 
   
-
-	printf("Starting test...\n");
 	if (sha256_init() == -1)
 		return -1; 
-
 
   // create the three test vectors, one with all (ASCII) zeros, one with ABCDEFGH.., 
   // and one with ABCDEFGH... but with an ASCCI zero in the last element
@@ -36,21 +34,25 @@ int main()
   }
   messages[2][SHA256_MSG_SIZE-1] = '0'; 
 
+  // print test vectors
+  printf("\nTest vectors:\n");
+  for (int i=0; i<3; i++) 
+  {
+    printf("message[%d]: ",i);
+    for (int j=0; j<SHA256_MSG_SIZE; j++)
+      printf("%c",messages[i][j]);
+    printf("\n");
+  }
+  printf("\nSTARTING TEST\n\n");
+
   // initialize digest to all zeros
   memset((void*)digest,0,SHA256_DGST_SIZE);
-
 
   // Run the three test cases
   for (int testnum=0; testnum<3; testnum++)
   {
     printf("Test vector [%d]\n",testnum);
     
-    // Print message to hash
-    printf("\tMessage to hash: ");
-    for (int i=0; i<SHA256_MSG_SIZE; i++) 
-        printf("%c",messages[testnum][i]);
-    printf("\n");
-
     // send the test vector to LKM
     int ret = sha256(messages[testnum], SHA256_MSG_SIZE, (uint8_t*)digest, &digest_len);
     if (ret < 0){
@@ -61,7 +63,7 @@ int main()
     printf("\tThe received digest is: ");
     for (int i=0; i<SHA256_DGST_SIZE; i++)
       printf("%X ", digest[i]);
-    printf("\n\n");
+    printf("\n");
 
     // check against known solution
     for (int i=0; i<SHA256_DGST_SIZE; i++)
@@ -70,7 +72,6 @@ int main()
       {
         errcnt++;
         printf("\t****Error, incorrect digest value for test vector %d, element %i!\n",testnum,i);
-
       }
     }
 
