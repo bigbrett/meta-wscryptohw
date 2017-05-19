@@ -54,27 +54,16 @@ int32_t sha256(uint8_t *datap, uint64_t datalen,uint8_t *digestp, uint32_t *dige
 	memset((void*)digestp,0,SHA256_DGST_SIZE);
 
 	// Open the device with read/write access
-	printf("Starting device test code example...\n");
 	fd = open("/dev/wssha256char", O_RDWR);             
 	if (fd < 0){
-		perror("Failed to open the device...");
+		perror("sha256: Failed to open the device...");
 		return errno;
 	}
-
-	// Print message to hash
-	ptr = datap;
-	printf("\tMessage to hash: ");
-	for (int i=0; i<SHA256_MSG_SIZE; i++) 
-	{
-		printf("%c",*ptr);
-		ptr++;
-	}
-	printf("\n");
 
 	// send the test vector to LKM
 	ret = write(fd, datap, SHA256_MSG_SIZE);
 	if (ret < 0){
-		perror("Failed to write the message to the device.");
+		perror("sha256: Failed to write the message to the device.");
 		return errno;
 	}
 
@@ -85,22 +74,13 @@ int32_t sha256(uint8_t *datap, uint64_t datalen,uint8_t *digestp, uint32_t *dige
 	// read back the response from the LKM and print
 	ret = read(fd, digestp, SHA256_DGST_SIZE);        
 	if (ret < 0){
-		perror("Failed to read the message from the device.");
+		perror("sha256: Failed to read the message from the device.");
 		return errno;
 	}
 
-	ptr = digestp;
-	printf("\tThe received digest is: ");
-	for (int i=0; i<SHA256_DGST_SIZE; i++)
-	{
-		printf("%X ", *ptr);
-		ptr++;
-	}
-	printf("\n\n");
-
 	// close and exit
 	if(close(fd)<0)
-		perror("Error closing file");
+		perror("sha256: Error closing file");
 
 	return 0;
 }
