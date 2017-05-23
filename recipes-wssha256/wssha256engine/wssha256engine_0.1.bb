@@ -8,7 +8,7 @@ LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 DEPENDS = "openssl"
 
-SRC_URI = "git://github.com/bigbrett/wssha256engine.git"
+SRC_URI = "git://github.com/bigbrett/wssha256engine.git;branch=master"
 SRCREV = "${AUTOREV}"
 
 
@@ -16,7 +16,7 @@ SRCREV = "${AUTOREV}"
 FILES_${PN} += " ${libdir} \
                  ${bindir} \ 
                  ${libdir}/*.so \
-                 ${bindir}/test "
+                 ${bindir}/wssha256enginetest "
 
 # Ensure that the DEV package doesn't grab them first
 # commenting this out did not change anything
@@ -27,7 +27,8 @@ S = "${WORKDIR}/git"
 # Override all the makefile variables for cross compilation
 PARALLEL_MAKE = ""
 EXTRA_OEMAKE = "'CC=${CC}' \
-                'LIB=-Llib -L=${libdir} ${LDFLAGS} -lcrypto'"
+                'LIB=-Llib -L=${libdir} ${LDFLAGS} -lcrypto -lwssha'"
+#                'LIB=-Llib -L=${libdir} ${LDFLAGS} -lcrypto -lwssha'"
 
 #LIB = "-Llib -L=${libdir} ${LDFLAGS}"
 #INC = "-I include -I =/usr/include/openssl"
@@ -47,5 +48,5 @@ do_install() {
       install -m 0755 ${S}/bin/libwssha256engine.so ${D}${libdir}
 # install test binary
       install -d ${D}${bindir}
-      install -m 0755 ${S}/bin/test ${D}{bindir}
+      install -m 0755 ${S}/bin/wssha256enginetest ${D}{bindir}
 }

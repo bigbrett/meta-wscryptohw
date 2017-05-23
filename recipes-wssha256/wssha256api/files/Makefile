@@ -9,9 +9,12 @@ all: lib test
 lib:
 	gcc -Wall -g -fPIC -c -o $(OBJFILE) $(SRCFILE)
 	gcc -shared -o $(LIBFILE) $(OBJFILE)
+#lib:
+#	gcc -Wall -g -c -o $(OBJFILE) $(SRCFILE) 
+#	ar -cvq libwssha.a $(OBJFILE)
 
 test: lib
 	gcc -L$(shell pwd) -Wall -g $(TESTFILE) -o $(TESTEXEC) -lwssha
 
 clean: 
-	rm -f *.o *.so $(TESTEXEC)
+	rm -f *.o *.so *.a $(TESTEXEC)

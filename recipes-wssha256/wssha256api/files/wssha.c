@@ -48,7 +48,6 @@ int32_t sha256_init(void)
 int32_t sha256(uint8_t *datap, uint64_t datalen,uint8_t *digestp, uint32_t *digest_lenp)
 {
 	int32_t ret, fd; 
-	uint8_t* ptr; 
 
 	// initialize digest to all zeros
 	memset((void*)digestp,0,SHA256_DGST_SIZE);

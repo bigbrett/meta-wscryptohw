@@ -62,7 +62,7 @@ int main()
 
     printf("\tThe received digest is: ");
     for (int i=0; i<SHA256_DGST_SIZE; i++)
-      printf("%X ", digest[i]);
+      printf("%2X ", digest[i]);
     printf("\n");
 
     // check against known solution

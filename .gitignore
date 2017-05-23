@@ -1,1 +1,5 @@
 yocto-layer.log
+*.o 
+*.so
+wsshatest
+
