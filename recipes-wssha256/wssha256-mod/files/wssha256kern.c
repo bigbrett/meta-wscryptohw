@@ -84,52 +84,52 @@ static struct file_operations fops =
  */
 static int __init wssha256_init(void)
 {
-	//printk(KERN_INFO "wssha256: Initializing the wssha256 LKM\n");
+	printk(KERN_INFO "wssha256: Initializing the wssha256 LKM\n");
 
 	// request physical memory for driver 
 	if (!request_mem_region(WSSHA256BASEADDR, SZ_64K, "wssha256")) {
-		//printk(KERN_INFO "wssha256 failed to request memory region\n");
+		printk(KERN_ALERT "wssha256 failed to request memory region\n");
 		return -EBUSY;
 	}
 	// map reserved physical memory into into virtual memory TODO dtc support
 	vbaseaddr = ioremap(WSSHA256BASEADDR, SZ_64K);
 	if (! vbaseaddr) {
-		//printk(KERN_INFO "wssha256 unable to map virual memory\n");
+		printk(KERN_ALERT "wssha256 unable to map virual memory\n");
 		release_mem_region(WSSHA256BASEADDR, SZ_64K);
 		return -EBUSY;
 	}
 	vbaseaddr = ioremap(WSSHA256BASEADDR, SZ_64K);
-	//printk(KERN_INFO "wssha256: Virtual Address = 0x%X\n",vbaseaddr);
+	printk(KERN_INFO "wssha256: Virtual Address = 0x%X\n",vbaseaddr);
 
 	// Try to dynamically allocate a major number for the device -- more difficult but worth it
 	majorNumber = register_chrdev(0, DEVICE_NAME, &fops);
 	if (majorNumber<0){
-		//printk(KERN_ALERT "wssha256 failed to register a major number\n");
+		printk(KERN_ALERT "wssha256 failed to register a major number\n");
 		return majorNumber;
 	}
-	//printk(KERN_INFO "wssha256: registered correctly with major number %d\n", majorNumber);
+	printk(KERN_INFO "wssha256: registered correctly with major number %d\n", majorNumber);
 
 	// Register the device class
 	wssha256charClass = class_create(THIS_MODULE, CLASS_NAME);
 	if (IS_ERR(wssha256charClass)){                // Check for error and clean up if there is
 		unregister_chrdev(majorNumber, DEVICE_NAME);
-		//printk(KERN_ALERT "wssha256: Failed to register device class\n");
+		printk(KERN_ALERT "wssha256: Failed to register device class\n");
 		return PTR_ERR(wssha256charClass);          // Correct way to return an error on a pointer
 	}
-	//printk(KERN_INFO "wssha256: device class registered correctly\n");
+	printk(KERN_INFO "wssha256: device class registered correctly\n");
 
 	// Register the device driver
 	wssha256charDevice = device_create(wssha256charClass, NULL, MKDEV(majorNumber, 0), NULL, DEVICE_NAME);
 	if (IS_ERR(wssha256charDevice)){               // Clean up if there is an error
 		class_destroy(wssha256charClass);           // Repeated code but the alternative is goto statements
 		unregister_chrdev(majorNumber, DEVICE_NAME);
-		//printk(KERN_ALERT "wssha256: Failed to create the device\n");
+		printk(KERN_ALERT "wssha256: Failed to create the device\n");
 		return PTR_ERR(wssha256charDevice);
 	}
-	//printk(KERN_INFO "wssha256: device class created correctly\n"); // Made it! device was initialized
+	printk(KERN_INFO "wssha256: device class created correctly\n"); // Made it! device was initialized
 
   // init hardware parameters 
-  //printk(KERN_INFO "wssha256: initializing wssha256 block for 256-byte message length, and 0 offset\n");
+  printk(KERN_INFO "wssha256: initializing wssha256 block for 256-byte message length, and 0 offset\n");
 	iowrite32(SHA256_MSG_SIZE, vbaseaddr+XSHA256_AXILITES_ADDR_BYTES_DATA);// set bytes to 256
 	iowrite32(0, vbaseaddr+XSHA256_AXILITES_ADDR_BASE_OFFSET_DATA); // set offset to 0 
 	return 0;
@@ -147,7 +147,7 @@ static void __exit wssha256_exit(void){
 	class_unregister(wssha256charClass);                          // unregister the device class
 	class_destroy(wssha256charClass);                             // remove the device class
 	unregister_chrdev(majorNumber, DEVICE_NAME);              // unregister the major number
-	//printk(KERN_INFO "wssha256: Exiting\n");
+	printk(KERN_INFO "wssha256: Exiting\n");
 }
 
 
