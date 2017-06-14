@@ -88,6 +88,7 @@ static struct file_operations fops =
  */
 static int __init wsaes_init(void)
 {
+  int ret = 0; 
   printk(KERN_INFO "wsaes: Initializing the wsaes LKM\n");
 
   // request physical memory for driver 
@@ -105,7 +106,15 @@ static int __init wsaes_init(void)
   vbaseaddr = ioremap(WSAESBASEADDR, SZ_64K);
   printk(KERN_INFO "wsaes: Virtual Address = 0x%X\n",vbaseaddr);
 
-  // Register the device class
+  // Try to statically allocate a major number for the device driver
+  ret = register_chrdev(MAJOR_NUM, DEVICE_NAME, &fops);
+  if (ret < 0) {
+  	printk(KERN_ALERT "wssha256 failed to register major number %d\n",MAJOR_NUM);
+  	return ret;
+  }
+  printk(KERN_INFO "wssha256: registered correctly with major number %d\n", MAJOR_NUM);    
+  
+  // Register the device class with sysfs
   wsaescharClass = class_create(THIS_MODULE, CLASS_NAME);
   if (IS_ERR(wsaescharClass)) {              // Check for error and clean up if there is
     unregister_chrdev(MAJOR_NUM, DEVICE_NAME);
@@ -114,7 +123,7 @@ static int __init wsaes_init(void)
   }
   printk(KERN_INFO "wsaes: device class registered correctly\n");
 
-  // Register the device driver
+  // Register the driver for the device class with sysfs
   wsaescharDevice = device_create(wsaescharClass, NULL, MKDEV(MAJOR_NUM, 0), NULL, DEVICE_NAME);
   if (IS_ERR(wsaescharDevice)) {             // Clean up if there is an error
     class_destroy(wsaescharClass);           // Repeated code but the alternative is goto statements
@@ -128,6 +137,7 @@ static int __init wsaes_init(void)
   printk(KERN_INFO "wsaes: initializing wsaes block to mode RESET\n");
   mode = RESET;
   iowrite8(mode, vbaseaddr + XAESCBC_AXILITES_ADDR_MODE_DATA); // write new mode value to memory 
+
   return 0;
 }
 
@@ -154,6 +164,7 @@ static void __exit wsaes_exit(void)
  *  @param filep A pointer to a file object (defined in linux/fs.h)
  */
 static int wsaes_open(struct inode *inodep, struct file *filep){
+  printk(KERN_INFO "wsaes: OPEN\n");
   if (numberOpens > 0)
   {
     printk(KERN_INFO "wsaes: Error: device already open\n");
@@ -260,7 +271,7 @@ static long wsaes_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 
       // improper ioctl number, return error
     default:
-      printk(KERN_INFO "ERROR, IMPROMER IOCTL NUMBER <%d>\n" ioctl_num);
+      printk(KERN_INFO "ERROR, IMPROMER IOCTL NUMBER <%d>\n", ioctl_num);
       retval = -ENOTTY;
       break;
   }
