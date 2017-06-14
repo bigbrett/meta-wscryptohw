@@ -231,23 +231,36 @@ static long wsaes_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
   switch (ioctl_num) 
   {
     case IOCTL_SET_MODE:
+      
       // check mode is valid
       if ( (mode >= 0) && (mode <= 4)) 
       {
+        printk(KERN_INFO "IOCTL_SET_MODE: mode = (%d)\n", mode);
         mode = (ciphermode_t)ioctl_param; // Get mode parameter passed to ioctl by user 
         iowrite8(mode, vbaseaddr + XAESCBC_AXILITES_ADDR_MODE_DATA); // write new mode value to memory 
+	
+	// if ioctl call was RESET, manually start the block since there will be no impending write to 
+	// to start the block
+	if (mode == RESET) {
+  	  unsigned int ctrl_reg = ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
+  	  iowrite32(ctrl_reg | 0x01, vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL);
+	}
       }
       // invalid argument 
-      else 
+      else  {
+        printk(KERN_INFO "IOCTL_SET_MODE: INVALID MODE\n");
         retval = -EINVAL; 
+      }
       break;
 
     case IOCTL_GET_MODE:
+      printk(KERN_INFO "IOCTL_GET_MODE: mode = (%d)\n", mode);
 //      retval = put_user(mode, (ciphermode_t*)ioctl_param); // copy mode value back to userspace pointer
       break;
 
       // improper ioctl number, return error
     default:
+      printk(KERN_INFO "ERROR, IMPROMER IOCTL NUMBER <%d>\n" ioctl_num);
       retval = -ENOTTY;
       break;
   }
