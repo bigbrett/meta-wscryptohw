@@ -8,43 +8,121 @@
  * must be called /dev/wssha256char.
  * @see http://www.derekmolloy.ie/ for a full description and follow-up descriptions.
  */
-#include<stdio.h>
-#include<stdlib.h>
-#include<errno.h>
-#include<fcntl.h>
-#include<string.h>
-#include<unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
 
-#define SHA256_MSG_SIZE 256
-#define SHA256_DGST_SIZE 32
+#include "wsaes.h"
+#include "xaescbc.h"
 
-static volatile char digest[SHA256_DGST_SIZE];     ///< The receive buffer from the LKM
-static char messages[3][SHA256_MSG_SIZE];
-static const char correct[3][SHA256_DGST_SIZE] = { 
-  {0x67,0xf0,0x22,0x19,0x5e,0xe4,0x05,0x14,0x29,0x68,0xca,0x1b,0x53,0xae,0x25,0x13,0xa8,0xba,0xb0,0x40,0x4d,0x70,0x57,0x77,0x85,0x31,0x6f,0xa9,0x52,0x18,0xe8,0xba},
-  {0x6c,0x50,0x76,0x06,0x1b,0x0c,0xc3,0x1f,0x39,0x87,0x76,0x7c,0x06,0x2c,0xd1,0x33,0xab,0x13,0x07,0x34,0xa0,0xb8,0x18,0x4c,0x65,0xd0,0x65,0x88,0x18,0x23,0xb9,0x92 },
-  {0x87,0x9a,0x0a,0xa9,0xbb,0xa8,0x7c,0x38,0x8e,0x07,0x0f,0xd7,0x04,0xce,0xa2,0x50,0x20,0xa4,0x57,0x39,0x60,0x7b,0x6f,0xa0,0xbe,0x5d,0xbf,0x98,0x78,0x66,0x26,0x2c }};
 
-int main()
+uint8_t key[AESKEYSIZE] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+							              0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+							              0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+							              0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F };
+uint8_t iv[AESIVSIZE] =   { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+		 	 	   	   	            0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f };
+char openSSL_result[32] = { 0xA8, 0x87, 0x01, 0xE4, 0x43, 0x4F, 0x59, 0x00, 
+                            0x9F, 0xF8, 0x9A, 0x40, 0x29, 0x98, 0x49, 0x57,
+							              0x99, 0x29, 0x0C, 0x6C, 0xB1, 0xB1, 0x6D, 0x1A, 
+                            0x8B, 0x0A, 0xF7, 0xAF, 0x2D, 0x96, 0x7E, 0xF1 };
+const char teststr[32] = "The Quick Brown Fox Jumped Over "; // string to encrypt
+
+//int32_t aes256setkey(int fd, uint8_t *keyp)
+//{
+//	XAescbc_Set_mode(&xaescbc, SET_KEY);
+//	XAescbc_Write_data_in_Bytes(&xaescbc, 0, (char*)keyp, AESKEYSIZE);
+//	startwait();
+//	return XST_SUCCESS;
+//}
+//
+//
+///*
+// *
+// */
+//int32_t aes256setiv(uint8_t *ivp)
+//{
+//	XAescbc_Set_mode(&xaescbc, SET_IV);
+//	XAescbc_Write_data_in_Bytes(&xaescbc, 0, (char*)ivp,  AESIVSIZE);
+//	startwait();
+//	return XST_SUCCESS;
+//}
+//
+//
+///*
+// *
+// */
+//int32_t aes256_init(void)
+//{
+//	// Look Up the device configuration
+//	aescbcPtr = XAescbc_LookupConfig(XPAR_XAESCBC_0_DEVICE_ID);
+//	if (!aescbcPtr) {
+//		print("ERROR: Lookup of AES accelerator configuration failed.\n\r");
+//		return XST_FAILURE;
+//	}
+//
+//	// Initialize the Device
+//	int status = XAescbc_CfgInitialize(&xaescbc, aescbcPtr);
+//	if (status != XST_SUCCESS) {
+//		print("ERROR: Could not initialize AES accelerator.\n\r");
+//		return XST_FAILURE;
+//	}
+//	XAescbc_DisableAutoRestart(&xaescbc);
+//
+//	return XST_SUCCESS;
+//}
+//
+//
+///*
+// *
+// */
+//int32_t aes256_reset(void)
+//{
+//	XAescbc_Set_mode(&xaescbc, RESET);
+//	// start encryption
+//	startwait();
+//	return XST_SUCCESS;
+//}
+//
+//
+///*
+// *
+// */
+//int32_t aes256(int mode,uint8_t *inp,uint32_t inlen,uint8_t *outp,uint32_t *outlenp)
+//{
+//	return XST_SUCCESS;
+//}
+//
+//
+//
+//static void dumpmsg( uint8_t *pbuf ) {
+//	int index;
+//
+//	for( index = 0; index < 16; index++ ) {
+//		printf("%02X ", pbuf[index]);
+//	}
+//	printf("\n");
+//}
+//
+//static void startwait(void)
+//{
+//	XAescbc_Start(&xaescbc);
+//	// wait for result
+//	while( !XAescbc_IsDone(&xaescbc));
+//}
+
+
+int main (void)
 {
   int ret, fd, errcnt;
 
-  // create the three test vectors, one with all (ASCII) zeros, one with ABCDEFGH.., 
-  // and one with ABCDEFGH... but with an ASCCI zero in the last element
-  memset((void*)messages[0],'0',SHA256_MSG_SIZE);
-  for (int i=0; i<SHA256_MSG_SIZE; i++) 
-  {
-    messages[1][i] = 'A'+(i%26);
-    messages[2][i] = messages[1][i];
-  }
-  messages[2][SHA256_MSG_SIZE-1] = '0'; 
-
-  // initialize digest to all zeros
-  memset((void*)digest,0,SHA256_DGST_SIZE);
-
   // Open the device with read/write access
-  printf("Starting device test code example...\n");
-  fd = open("/dev/wssha256char", O_RDWR);             
+	printf("Beginning AES test...\n");
+  fd = open("/dev/wsaeschar", O_RDWR);             
   if (fd < 0){
     perror("Failed to open the device...");
     return errno;
@@ -52,66 +130,141 @@ int main()
 
   errcnt=0;
 
-  // Run the three test cases
-  for (int testnum=0; testnum<3; testnum++)
-  {
-    printf("Test vector [%d]\n",testnum);
-    
-    // Print message to hash
-    printf("\tMessage to hash: ");
-    for (int i=0; i<SHA256_MSG_SIZE; i++) 
-        printf("%c",messages[testnum][i]);
-    printf("\n");
+  // initialize input and output memory
+	uint8_t buf0[32];
+	uint8_t buf1[32];
+	memset(buf0,0,32);
+	memset(buf1,0,32);
 
-    // send the test vector to LKM
-    ret = write(fd, messages[testnum], SHA256_MSG_SIZE);
-    if (ret < 0){
-      perror("Failed to write the message to the device.");
-      return errno;
-    }
+	// Text to encrypt/decrypt
+	strncpy((char *)buf0, teststr, 32);
+	printf("TEXT  :\n");
+	dumpmsg(buf0);
+	dumpmsg(&(buf0[16]));
 
-    // TODO THIS SLEEP IS NECESSARY TO ENSURE THERE IS ENOUGH TIME FOR THE HW DEVICE TO COMPLETE.
-    // IT SHOULD BE REPLACED WITH A READY CHECK, TO BE IMPLEMENTED IN THE DRIVER USING IOCTL
-    sleep(1);
+	// Initialize our engine
+	//aes256_init();
 
-    // read back the response from the LKM and print
-    ret = read(fd, digest, SHA256_DGST_SIZE);        
-    if (ret < 0){
-      perror("Failed to read the message from the device.");
-      return errno;
-    }
-    printf("\tThe received digest is: ");
-    for (int i=0; i<SHA256_DGST_SIZE; i++)
-      printf("%X ", digest[i]);
-    printf("\n\n");
+  // set key
+  ret = ioctl(fd, IOCTL_SET_MODE, SET_KEY); // switch mode 
+	ret = write(fd, key, AESKEYSIZE); // write key 
+	if (ret < 0) {
+		perror("Failed to write KEY to the device.");
+		return errno;
+	}
 
-    // check against known solution
-    for (int i=0; i<SHA256_DGST_SIZE; i++)
-    {
-      if (digest[i] != correct[testnum][i])
-      {
-        errcnt++;
-        printf("\t****Error, incorrect digest value for test vector %d, element %i!\n",testnum,i);
+  // set IV
+  ret = ioctl(fd, IOCTL_SET_MODE, SET_IV); // switch mode 
+	ret = write(fd, key, AESIVSIZE); // write IV
+	if (ret < 0) {
+		perror("Failed to write IV to the device.");
+		return errno;
+	}
+ 
+  // reset block 
+  ret = ioctl(fd, IOCTL_SET_MODE, RESET); 
+	if (ret < 0) {
+		perror("ERROR: RESET IOCTL FAILED\n");
+		return errno;
+	}
+  // Encrypt first 16 bytes
+	ret = ioctl(fd, IOCTL_SET_MODE, ENCRYPT); // switch mode 
+	ret = write(fd, buf0, AESBLKSIZE); 
+	if (ret < 0) {
+		perror("Failed to write first block of data to the device.");
+		return errno;
+	}
 
-      }
-    }
+  // read back encrypted first 16 bytes into buffer
+	ret = read(fd, buf1, AESBLKSIZE);        
+	if (ret < 0){
+		perror("Failed to read first block of encrypted data from the device.");
+		return errno;
+	}
 
-    // report erroneous values
-    if (errcnt == 0)
-      printf("****Test vector %d status: SUCCESS\n\n",testnum);
-    else 
-    {
-      printf("****Test vector %d status: FAILED\n\n",testnum);
-      return -1; 
-    }
-      
-    // reset digest to all zeros
-    memset((void*)digest,0,SHA256_DGST_SIZE);
-  }
+  // Encrypt second 16 bytes
+	ret = write(fd, &(buf0[16]), AESBLKSIZE); 
+	if (ret < 0) {
+		perror("Failed to write second block of data to the device.");
+		return errno;
+	}	
 
-  // close and exit
+  // read back encrypted second 16 bytes into buffer
+	ret = read(fd, &(buf1[16]), AESBLKSIZE);        
+	if (ret < 0){
+		perror("Failed to read second block of encrypted data from the device.");
+		return errno;
+	}
+
+  // display encrypted data
+	printf("DUTENC:\n");
+	dumpmsg(buf1);
+	dumpmsg(&(buf1[16]));
+
+  // Check encrypted data against ground truth
+	if (memcmp(buf1, openSSL_result, 32))
+	{
+		printf("ERROR: ENCRYPTED DATA NOT CORRECT\n");
+		return -1;
+	}
+
+	// Erase the original plain text
+	memset(buf0,0,32);
+
+	// Reset, set mode, and write first 16 bytes of DECRYPTED data to block
+	ret = ioctl(fd, IOCTL_SET_MODE, RESET);
+	if (ret < 0) {
+		perror("ERROR: RESET IOCTL FAILED\n");
+		return errno;
+	}
+
+  // Decrypt first 16 bytes
+	ret = ioctl(fd, IOCTL_SET_MODE, DECRYPT); // switch mode 
+	ret = write(fd, buf1, AESBLKSIZE); 
+	if (ret < 0) {
+		perror("Failed to write first block of encrypted data to the device.");
+		return errno;
+	}
+
+  // read back encrypted second 16 bytes into buffer
+	ret = read(fd, buf0, AESBLKSIZE);        
+	if (ret < 0){
+		perror("Failed to read first block of decrypted data from the device.");
+		return errno;
+	}
+
+	// Decrypt second 16 bytes
+	ret = write(fd, &(buf1[16]), AESBLKSIZE); 
+	if (ret < 0) {
+		perror("Failed to write second block of encrypted data to the device.");
+		return errno;
+	}
+
+  // read back decrypted second 16 bytes into buffer
+	ret = read(fd, &(buf0[16]), AESBLKSIZE);        
+	if (ret < 0){
+		perror("Failed to read second block of decrypted data from the device.");
+		return errno;
+	}
+
+  // Display decrypted data
+	printf("DUTDEC:\n");
+	dumpmsg(buf0);
+	dumpmsg(&(buf0[16]));
+
+	// close and exit
   if(close(fd)<0)
     perror("Error closing file");
 
-  return 0;
+  // check decrypted data against original message
+	if (memcmp(buf0, teststr, 32))
+	{
+		printf("ERROR: DECRYPTED DATA NOT CORRECT\n");
+		return -1;
+	}
+
+	printf("Success!\n");
+	return 0;
 }
+
+
