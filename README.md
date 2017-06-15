@@ -39,15 +39,15 @@ Assuming the wscryptohw layer exists at the top-level of your yocto build tree, 
     /path/to/yocto/meta-wscryptohw \
     "
 ```
-The output kernel driver binaries can be found at `${WORKDIR}/ws<METHOD>.ko`, where <METHOD> is one of the following crypto methods: aes, sha256, or rsa. The module should be automatically installed in your image's /lib/modules folder. If you can't find it, try the following: 
+The output kernel driver binaries can be found at `${WORKDIR}/ws<METHOD>.ko`, where \<METHOD\> is one of the following crypto methods: aes, sha256, or rsa. The module should be automatically installed in your image's /lib/modules folder. If you can't find it, try the following: 
 ```
-bitbake -e ws<METHOD>-mod | grep ^WORKDIR //first find the value of ${WORKDIR}
-find ${WORKDIR} -name "ws<METHOD>kern.ko" 
+bitbake -e ws\<METHOD\>-mod | grep ^WORKDIR //first find the value of ${WORKDIR}
+find ${WORKDIR} -name "ws\<METHOD\>kern.ko" 
 ```
 # 2. Testing the Kernel Driver
-Each kernel driver (ws<METHOD>.ko) contains a self-checking test program that can be run in userspace to test the correct operation of the driver. The test program is included in the recipe ws<METHOD>test The test recipe should be automatically built after the layer is added to your build. The output files are located at `${WORKDIR}/ws<METHOD>test`, or at `${WORKDIR}/image/usr/bin/ws<METHOD>test`. See the `ws<METHOD>test_${PV}.bb` file if you are unsure.
+Each kernel driver (ws\<METHOD\>.ko) contains a self-checking test program that can be run in userspace to test the correct operation of the driver. The test program is included in the recipe ws\<METHOD\>test The test recipe should be automatically built after the layer is added to your build. The output files are located at `${WORKDIR}/ws\<METHOD\>test`, or at `${WORKDIR}/image/usr/bin/ws\<METHOD\>test`. See the `ws\<METHOD\>test_${PV}.bb` file if you are unsure.
 
-If the test recipe is not added to your build for some reason, you can manually build it using the command `bitbake ws<METHOD>test`
+If the test recipe is not added to your build for some reason, you can manually build it using the command `bitbake ws\<METHOD\>test`
 
 # 3. Misc
 
