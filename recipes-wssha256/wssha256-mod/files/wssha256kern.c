@@ -62,7 +62,7 @@ static int     wssha256_open(struct inode *, struct file *);
 static int     wssha256_release(struct inode *, struct file *);
 static ssize_t wssha256_read(struct file *, char *, size_t, loff_t *);
 static ssize_t wssha256_write(struct file *, const char *, size_t, loff_t *);
-
+static void wssha256_runonce_blocking(void);
 
 /** @brief Devices are represented as file structure in the kernel. The file_operations structure from
  *  /linux/fs.h lists the callback functions that you wish to associated with your file operations *  using a C99 syntax structure. char devices usually implement open, read, write and release calls
@@ -210,8 +210,7 @@ static ssize_t wssha256_write(struct file *filep, const char *buffer, size_t len
 	memcpy_toio(vbaseaddr+XSHA256_AXILITES_ADDR_DATA_BASE, message, SHA256_MSG_SIZE);
 
 	// start AES block using read-modify-write on ap_ctrl register
-	unsigned int ctrl_reg = ioread32(vbaseaddr + XSHA256_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
-	iowrite32(ctrl_reg | 0x01, vbaseaddr + XSHA256_AXILITES_ADDR_AP_CTRL);
+    wssha256_runonce_blocking();
 
 	//printk(KERN_INFO "wssha256: Received message of length %zu bytes from userspace\n", len);
 	return len;
@@ -230,6 +229,20 @@ static int wssha256_release(struct inode *inodep, struct file *filep){
 }
 
 
+/*
+ * Helper function to check if the block has finished and is ready for the next input
+ */
+static void wssha256_runonce_blocking(void)
+{
+   unsigned int ctrl_reg;
+
+   // set ap_start high using read-modify-write
+    ctrl_reg = ioread32(vbaseaddr + XSHA256_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
+    iowrite32(ctrl_reg | 0x01, vbaseaddr + XSHA256_AXILITES_ADDR_AP_CTRL);
+
+   // wait for completion
+   while (! (ioread32(vbaseaddr + XSHA256_AXILITES_ADDR_AP_CTRL)>>1) & 0x1); 
+}
 
 /** @brief A module must use the module_init() module_exit() macros from linux/init.h, which
  *  identify the initialization function at insertion time and the cleanup function (as
