@@ -14,7 +14,14 @@ This layer depends on:
   URI: git://git.openembedded.org/openembedded-core
   layers: meta
   branch: master
+  
+  URI: git://git.yoctoproject.org/meta-xilinx
+  branch: morty
+  
+  URI: https://github.com/Xilinx/meta-xilinx-tools.git
+  branch: rel-v2016.3     
 ```
+
 # Table of Contents
   1. Adding the wscryptohw layer to your build
   2. Testing the kernel drivers
