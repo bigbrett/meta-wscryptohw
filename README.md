@@ -45,7 +45,7 @@ bitbake -e ws<METHOD>-mod | grep ^WORKDIR //first find the value of ${WORKDIR}
 find ${WORKDIR} -name "ws<METHOD>kern.ko" 
 ```
 # 2. Testing the Kernel Driver
-Each kernel driver (ws\<METHOD\>.ko) contains a self-checking test program that can be run in userspace to test the correct operation of the driver. The test program is included in the recipe ws\<METHOD\>test The test recipe should be automatically built after the layer is added to your build. The output files are located at `${WORKDIR}/ws\<METHOD\>test`, or at `${WORKDIR}/image/usr/bin/ws<METHOD>test`. See the `ws<METHOD>test_${PV}.bb` file if you are unsure.
+Each kernel driver (ws\<METHOD\>.ko) contains a self-checking test program that can be run in userspace to test the correct operation of the driver. The test program is included in the recipe ws\<METHOD\>test The test recipe should be automatically built after the layer is added to your build. The output files are located at `${WORKDIR}/ws<METHOD>test`, or at `${WORKDIR}/image/usr/bin/ws<METHOD>test`. See the `ws<METHOD>test_${PV}.bb` file if you are unsure.
 
 If the test recipe is not added to your build for some reason, you can manually build it using the command `bitbake ws<METHOD>test`
 
