@@ -69,7 +69,7 @@ static ssize_t wsaes_write(struct file *, const char *, size_t, loff_t *);
 static long    wsaes_ioctl(struct file *, unsigned int, unsigned long);
 
 // helper functions 
-static void wsaes_runonce_blocking(void)
+static void wsaes_runonce_blocking(void);
 
 
 /** @brief Devices are represented as file structure in the kernel. The file_operations structure from
@@ -221,9 +221,11 @@ static ssize_t wsaes_write(struct file *filep, const char *buffer, size_t len, l
     memcpy_toio(vbaseaddr+XAESCBC_AXILITES_ADDR_DATA_IN_BASE, data_in, len);
 
     printk(KERN_INFO "start\n");
+    
     // start AES block using read-modify-write on ap_ctrl register
-    unsigned int ctrl_reg = ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
-    iowrite32(ctrl_reg | 0x01, vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL);
+    //unsigned int ctrl_reg = ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
+    //iowrite32(ctrl_reg | 0x01, vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL);
+    wsaes_runonce_blocking();
 
     printk(KERN_INFO "wsaes: Received message of length %zu bytes from userspace\n", len);
     return len;
@@ -263,8 +265,9 @@ static long wsaes_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
                 // if ioctl call was RESET, manually start the block since there will be no impending write to 
                 // to start the block
                 if (mode == RESET) {
-                    ctrl_reg = ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
-                    iowrite32(ctrl_reg | 0x01, vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL);
+                    //ctrl_reg = ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
+                    //iowrite32(ctrl_reg | 0x01, vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL);
+                    wsaes_runonce_blocking();
                 }
             }
             // invalid argument 
