@@ -68,6 +68,10 @@ static ssize_t wsaes_read(struct file *, char *, size_t, loff_t *);
 static ssize_t wsaes_write(struct file *, const char *, size_t, loff_t *);
 static long    wsaes_ioctl(struct file *, unsigned int, unsigned long);
 
+// helper functions 
+static void wsaes_runonce_blocking(void)
+
+
 /** @brief Devices are represented as file structure in the kernel. The file_operations structure from
  *  /linux/fs.h lists the callback functions that you wish to associated with your file operations *  using a C99 syntax structure. char devices usually implement open, read, write and release calls
  */
@@ -241,6 +245,7 @@ static ssize_t wsaes_write(struct file *filep, const char *buffer, size_t len, l
 static long wsaes_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param)
 {
     int retval = 0;
+    unsigned int ctrl_reg = 0;
 
     // Switch according to the ioctl called 
     switch (ioctl_num) 
@@ -258,7 +263,7 @@ static long wsaes_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
                 // if ioctl call was RESET, manually start the block since there will be no impending write to 
                 // to start the block
                 if (mode == RESET) {
-                    unsigned int ctrl_reg = ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
+                    ctrl_reg = ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
                     iowrite32(ctrl_reg | 0x01, vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL);
                 }
             }
@@ -296,6 +301,21 @@ static int wsaes_release(struct inode *inodep, struct file *filep)
     return 0;
 }
 
+
+/*
+ * Helper function to check if the block has finished and is ready for the next input
+ */
+static void wsaes_runonce_blocking(void)
+{
+    unsigned int ctrl_reg;
+
+    // set ap_start high using read-modify-write
+    ctrl_reg = ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL) & 0x80; 
+    iowrite32(ctrl_reg | 0x01, vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL);
+
+    // wait for completion
+    while (! (ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL)>>2) & 0x1); 
+}
 
 
 /** @brief A module must use the module_init() module_exit() macros from linux/init.h, which
