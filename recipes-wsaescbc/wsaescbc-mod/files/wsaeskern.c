@@ -307,7 +307,7 @@ static void wsaes_runonce_blocking(void)
     iowrite32(ctrl_reg | 0x01, vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL);
 
     // wait for completion
-    while (! (ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL)>>2) & 0x1); 
+    while (! (ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL)>>1) & 0x1); 
 }
 
 
