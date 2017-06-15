@@ -238,16 +238,40 @@ int main (void)
     dumpmsg(buf0);
     dumpmsg(&(buf0[16]));
 
-    // close and exit
-    if(close(fd)<0)
-        perror("Error closing file");
-
     // check decrypted data against original message
     if (memcmp(buf0, teststr, 32))
     {
         printf("ERROR: DECRYPTED DATA NOT CORRECT\n");
         return -1;
     }
+
+    // test get mode IOCTL for each mode
+    printf(">>>TEST: IOCTL_GET_MODE\n");
+    char mode;
+    for (int i=0; i<4; i++)
+    {
+        ret = ioctl(fd, IOCTL_SET_MODE, i);
+        if (ret < 0){
+            perror("\tIOCTL_SET_MODE failed: ");
+            return errno;
+        }
+        ret = ioctl(fd, IOCTL_GET_MODE, (ciphermode_t*)&mode); 
+        printf("\t mode = %d\n",mode);
+        if (ret < 0){
+            perror("IOCTL_GET_MODE failed: ");
+            return errno;
+        }
+        if ((char)mode != i)
+        {
+            printf(">>>TEST: GET MODE DOESN'T MATCH\n");
+            return -1;
+        }
+    }
+    
+    // close and exit
+    if(close(fd)<0)
+        perror("Error closing file");
+
 
     printf("Success!\n");
     return 0;

@@ -212,19 +212,13 @@ static ssize_t wsaes_read(struct file *filep, char *buffer, size_t len, loff_t *
  */
 static ssize_t wsaes_write(struct file *filep, const char *buffer, size_t len, loff_t *offset)
 {  
-    printk(KERN_INFO "copy_from_user\n");
     // copy data from userspace into kernel message buffer
     copy_from_user(data_in, buffer, len);
 
-    printk(KERN_INFO "memcpy_toio\n");
     // write data from kernel message buffer to PL data_in register region
     memcpy_toio(vbaseaddr+XAESCBC_AXILITES_ADDR_DATA_IN_BASE, data_in, len);
-
-    printk(KERN_INFO "start\n");
     
-    // start AES block using read-modify-write on ap_ctrl register
-    //unsigned int ctrl_reg = ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
-    //iowrite32(ctrl_reg | 0x01, vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL);
+    // start AES block 
     wsaes_runonce_blocking();
 
     printk(KERN_INFO "wsaes: Received message of length %zu bytes from userspace\n", len);
@@ -253,7 +247,6 @@ static long wsaes_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
     switch (ioctl_num) 
     {
         case IOCTL_SET_MODE:
-
             // check mode is valid
             if ( (mode >= 0) && (mode <= 4)) 
             {
@@ -264,11 +257,8 @@ static long wsaes_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 
                 // if ioctl call was RESET, manually start the block since there will be no impending write to 
                 // to start the block
-                if (mode == RESET) {
-                    //ctrl_reg = ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
-                    //iowrite32(ctrl_reg | 0x01, vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL);
+                if (mode == RESET) 
                     wsaes_runonce_blocking();
-                }
             }
             // invalid argument 
             else  {
@@ -279,7 +269,7 @@ static long wsaes_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 
         case IOCTL_GET_MODE:
             printk(KERN_INFO "IOCTL_GET_MODE: mode = (%d)\n", mode);
-            //      retval = put_user(mode, (ciphermode_t*)ioctl_param); // copy mode value back to userspace pointer
+            retval = put_user(mode, (ciphermode_t*)ioctl_param); // copy mode value back to userspace pointer
             break;
 
             // improper ioctl number, return error
