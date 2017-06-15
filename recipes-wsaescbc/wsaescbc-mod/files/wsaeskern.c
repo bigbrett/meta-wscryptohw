@@ -53,8 +53,9 @@ static void __iomem *vbaseaddr = NULL;          // void pointer to virtual memor
 typedef enum { RESET = 0, ENCRYPT, DECRYPT, SET_IV, SET_KEY } ciphermode_t;
 static ciphermode_t mode = RESET;
 
-static volatile char data_in[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  // Memory for bytes  passed from userspace
-static volatile char data_out[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; // Memory for bytes passed back to userspace
+static volatile char data_in[AESKEYSIZE] =  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                             0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  // Memory for bytes  passed from userspace
+static volatile char data_out[AESBLKSIZE] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; // Memory for bytes passed back to userspace
 volatile static int numberOpens = 0;              // Counts the number of times the device is opened
 static struct class*  wsaescharClass  = NULL; /// The device-driver class struct pointer
 static struct device* wsaescharDevice = NULL; /// The device-driver device struct pointer
@@ -72,11 +73,11 @@ static long    wsaes_ioctl(struct file *, unsigned int, unsigned long);
  */
 static struct file_operations fops =
 {
-  .open = wsaes_open,
-  .read = wsaes_read,
-  .write = wsaes_write,
-  .release = wsaes_release,
-  .unlocked_ioctl = wsaes_ioctl
+    .open = wsaes_open,
+    .read = wsaes_read,
+    .write = wsaes_write,
+    .release = wsaes_release,
+    .unlocked_ioctl = wsaes_ioctl
 };
 
 
@@ -88,57 +89,57 @@ static struct file_operations fops =
  */
 static int __init wsaes_init(void)
 {
-  int ret = 0; 
-  printk(KERN_INFO "wsaes: Initializing the wsaes LKM\n");
+    int ret = 0; 
+    printk(KERN_INFO "wsaes: Initializing the wsaes LKM\n");
 
-  // request physical memory for driver 
-  if (!request_mem_region(WSAESBASEADDR, SZ_64K, "wsaes")) {
-    printk(KERN_ALERT "wsaes failed to request memory region\n");
-    return -EBUSY;
-  }
-  // map reserved physical memory into into virtual memory TODO dtc support
-  vbaseaddr = ioremap(WSAESBASEADDR, SZ_64K);
-  if (! vbaseaddr) {
-    printk(KERN_ALERT "wsaes unable to map virual memory\n");
-    release_mem_region(WSAESBASEADDR, SZ_64K);
-    return -EBUSY;
-  }
-  vbaseaddr = ioremap(WSAESBASEADDR, SZ_64K);
-  printk(KERN_INFO "wsaes: Virtual Address = 0x%X\n",vbaseaddr);
+    // request physical memory for driver 
+    if (!request_mem_region(WSAESBASEADDR, SZ_64K, "wsaes")) {
+        printk(KERN_ALERT "wsaes failed to request memory region\n");
+        return -EBUSY;
+    }
+    // map reserved physical memory into into virtual memory TODO dtc support
+    vbaseaddr = ioremap(WSAESBASEADDR, SZ_64K);
+    if (! vbaseaddr) {
+        printk(KERN_ALERT "wsaes unable to map virual memory\n");
+        release_mem_region(WSAESBASEADDR, SZ_64K);
+        return -EBUSY;
+    }
+    vbaseaddr = ioremap(WSAESBASEADDR, SZ_64K);
+    printk(KERN_INFO "wsaes: Virtual Address = 0x%X\n",vbaseaddr);
 
-  // Try to statically allocate a major number for the device driver
-  ret = register_chrdev(MAJOR_NUM, DEVICE_NAME, &fops);
-  if (ret < 0) {
-  	printk(KERN_ALERT "wssha256 failed to register major number %d\n",MAJOR_NUM);
-  	return ret;
-  }
-  printk(KERN_INFO "wssha256: registered correctly with major number %d\n", MAJOR_NUM);    
-  
-  // Register the device class with sysfs
-  wsaescharClass = class_create(THIS_MODULE, CLASS_NAME);
-  if (IS_ERR(wsaescharClass)) {              // Check for error and clean up if there is
-    unregister_chrdev(MAJOR_NUM, DEVICE_NAME);
-    printk(KERN_ALERT "wsaes: Failed to register device class\n");
-    return PTR_ERR(wsaescharClass);          // Correct way to return an error on a pointer
-  }
-  printk(KERN_INFO "wsaes: device class registered correctly\n");
+    // Try to statically allocate a major number for the device driver
+    ret = register_chrdev(MAJOR_NUM, DEVICE_NAME, &fops);
+    if (ret < 0) {
+        printk(KERN_ALERT "wssha256 failed to register major number %d\n",MAJOR_NUM);
+        return ret;
+    }
+    printk(KERN_INFO "wssha256: registered correctly with major number %d\n", MAJOR_NUM);    
 
-  // Register the driver for the device class with sysfs
-  wsaescharDevice = device_create(wsaescharClass, NULL, MKDEV(MAJOR_NUM, 0), NULL, DEVICE_NAME);
-  if (IS_ERR(wsaescharDevice)) {             // Clean up if there is an error
-    class_destroy(wsaescharClass);           // Repeated code but the alternative is goto statements
-    unregister_chrdev(MAJOR_NUM, DEVICE_NAME);
-    printk(KERN_ALERT "wsaes: Failed to create the device\n");
-    return PTR_ERR(wsaescharDevice);
-  }
-  printk(KERN_INFO "wsaes: device class created correctly\n"); // Made it! device was initialized
+    // Register the device class with sysfs
+    wsaescharClass = class_create(THIS_MODULE, CLASS_NAME);
+    if (IS_ERR(wsaescharClass)) {              // Check for error and clean up if there is
+        unregister_chrdev(MAJOR_NUM, DEVICE_NAME);
+        printk(KERN_ALERT "wsaes: Failed to register device class\n");
+        return PTR_ERR(wsaescharClass);          // Correct way to return an error on a pointer
+    }
+    printk(KERN_INFO "wsaes: device class registered correctly\n");
 
-  // init hardware parameters 
-  printk(KERN_INFO "wsaes: initializing wsaes block to mode RESET\n");
-  mode = RESET;
-  iowrite8(mode, vbaseaddr + XAESCBC_AXILITES_ADDR_MODE_DATA); // write new mode value to memory 
+    // Register the driver for the device class with sysfs
+    wsaescharDevice = device_create(wsaescharClass, NULL, MKDEV(MAJOR_NUM, 0), NULL, DEVICE_NAME);
+    if (IS_ERR(wsaescharDevice)) {             // Clean up if there is an error
+        class_destroy(wsaescharClass);           // Repeated code but the alternative is goto statements
+        unregister_chrdev(MAJOR_NUM, DEVICE_NAME);
+        printk(KERN_ALERT "wsaes: Failed to create the device\n");
+        return PTR_ERR(wsaescharDevice);
+    }
+    printk(KERN_INFO "wsaes: device class created correctly\n"); // Made it! device was initialized
 
-  return 0;
+    // init hardware parameters 
+    printk(KERN_INFO "wsaes: initializing wsaes block to mode RESET\n");
+    mode = RESET;
+    iowrite8(mode, vbaseaddr + XAESCBC_AXILITES_ADDR_MODE_DATA); // write new mode value to memory 
+
+    return 0;
 }
 
 
@@ -148,13 +149,13 @@ static int __init wsaes_init(void)
  */
 static void __exit wsaes_exit(void) 
 {
-  iounmap(vbaseaddr); // unmap device IO memory 
-  release_mem_region(WSAESBASEADDR, SZ_64K);
-  device_destroy(wsaescharClass, MKDEV(MAJOR_NUM, 0));     // remove the device
-  class_unregister(wsaescharClass);                          // unregister the device class
-  class_destroy(wsaescharClass);                             // remove the device class
-  unregister_chrdev(MAJOR_NUM, DEVICE_NAME);              // unregister the major number
-  printk(KERN_INFO "wsaes: Exiting\n");
+    iounmap(vbaseaddr); // unmap device IO memory 
+    release_mem_region(WSAESBASEADDR, SZ_64K);
+    device_destroy(wsaescharClass, MKDEV(MAJOR_NUM, 0));     // remove the device
+    class_unregister(wsaescharClass);                          // unregister the device class
+    class_destroy(wsaescharClass);                             // remove the device class
+    unregister_chrdev(MAJOR_NUM, DEVICE_NAME);              // unregister the major number
+    printk(KERN_INFO "wsaes: Exiting\n");
 }
 
 
@@ -164,15 +165,15 @@ static void __exit wsaes_exit(void)
  *  @param filep A pointer to a file object (defined in linux/fs.h)
  */
 static int wsaes_open(struct inode *inodep, struct file *filep){
-  printk(KERN_INFO "wsaes: OPEN\n");
-  if (numberOpens > 0)
-  {
-    printk(KERN_INFO "wsaes: Error: device already open\n");
-    return -EBUSY;
-  }
-  numberOpens++;
-  printk(KERN_INFO "wsaes: Device has been opened %d time(s)\n", numberOpens);
-  return 0;
+    printk(KERN_INFO "wsaes: OPEN\n");
+    if (numberOpens > 0)
+    {
+        printk(KERN_INFO "wsaes: Error: device already open\n");
+        return -EBUSY;
+    }
+    numberOpens++;
+    printk(KERN_INFO "wsaes: Device has been opened %d time(s)\n", numberOpens);
+    return 0;
 }
 
 
@@ -186,14 +187,14 @@ static int wsaes_open(struct inode *inodep, struct file *filep){
  */
 static ssize_t wsaes_read(struct file *filep, char *buffer, size_t len, loff_t *offset)
 {
-  // Read data_out from PL  
-  memcpy_fromio(data_out, vbaseaddr+XAESCBC_AXILITES_ADDR_DATA_OUT_BASE, AESBLKSIZE);
+    // Read data_out from PL  
+    memcpy_fromio(data_out, vbaseaddr+XAESCBC_AXILITES_ADDR_DATA_OUT_BASE, AESBLKSIZE);
 
-  // Copy data_out back into userspace (*to,*from,size)
-  copy_to_user(buffer, data_out, AESBLKSIZE);
+    // Copy data_out back into userspace (*to,*from,size)
+    copy_to_user(buffer, data_out, AESBLKSIZE);
 
-  printk(KERN_INFO "wsaes: Copied data of length %d bytes back to userspace\n", AESBLKSIZE);
-  return AESBLKSIZE;  // clear the position to the start and return 0
+    printk(KERN_INFO "wsaes: Copied data of length %d bytes back to userspace\n", AESBLKSIZE);
+    return AESBLKSIZE;  // clear the position to the start and return 0
 }
 
 
@@ -207,18 +208,21 @@ static ssize_t wsaes_read(struct file *filep, char *buffer, size_t len, loff_t *
  */
 static ssize_t wsaes_write(struct file *filep, const char *buffer, size_t len, loff_t *offset)
 {  
-  // copy data from userspace into kernel message buffer
-  copy_from_user(data_in, buffer, len);
+    printk(KERN_INFO "copy_from_user\n");
+    // copy data from userspace into kernel message buffer
+    copy_from_user(data_in, buffer, len);
 
-  // write data from kernel message buffer to PL data_in register region
-  memcpy_toio(vbaseaddr+XAESCBC_AXILITES_ADDR_DATA_IN_BASE, data_in, len);
+    printk(KERN_INFO "memcpy_toio\n");
+    // write data from kernel message buffer to PL data_in register region
+    memcpy_toio(vbaseaddr+XAESCBC_AXILITES_ADDR_DATA_IN_BASE, data_in, len);
 
-  // start AES block using read-modify-write on ap_ctrl register
-  unsigned int ctrl_reg = ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
-  iowrite32(ctrl_reg | 0x01, vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL);
+    printk(KERN_INFO "start\n");
+    // start AES block using read-modify-write on ap_ctrl register
+    unsigned int ctrl_reg = ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
+    iowrite32(ctrl_reg | 0x01, vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL);
 
-  printk(KERN_INFO "wsaes: Received message of length %zu bytes from userspace\n", len);
-  return len;
+    printk(KERN_INFO "wsaes: Received message of length %zu bytes from userspace\n", len);
+    return len;
 }
 
 
@@ -236,46 +240,47 @@ static ssize_t wsaes_write(struct file *filep, const char *buffer, size_t len, l
  */
 static long wsaes_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param)
 {
-  int retval = 0;
+    int retval = 0;
 
-  // Switch according to the ioctl called 
-  switch (ioctl_num) 
-  {
-    case IOCTL_SET_MODE:
-      
-      // check mode is valid
-      if ( (mode >= 0) && (mode <= 4)) 
-      {
-        printk(KERN_INFO "IOCTL_SET_MODE: mode = (%d)\n", mode);
-        mode = (ciphermode_t)ioctl_param; // Get mode parameter passed to ioctl by user 
-        iowrite8(mode, vbaseaddr + XAESCBC_AXILITES_ADDR_MODE_DATA); // write new mode value to memory 
-	
-	// if ioctl call was RESET, manually start the block since there will be no impending write to 
-	// to start the block
-	if (mode == RESET) {
-  	  unsigned int ctrl_reg = ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
-  	  iowrite32(ctrl_reg | 0x01, vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL);
-	}
-      }
-      // invalid argument 
-      else  {
-        printk(KERN_INFO "IOCTL_SET_MODE: INVALID MODE\n");
-        retval = -EINVAL; 
-      }
-      break;
+    // Switch according to the ioctl called 
+    switch (ioctl_num) 
+    {
+        case IOCTL_SET_MODE:
 
-    case IOCTL_GET_MODE:
-      printk(KERN_INFO "IOCTL_GET_MODE: mode = (%d)\n", mode);
-//      retval = put_user(mode, (ciphermode_t*)ioctl_param); // copy mode value back to userspace pointer
-      break;
+            // check mode is valid
+            if ( (mode >= 0) && (mode <= 4)) 
+            {
+                printk(KERN_INFO "IOCTL_SET_MODE: curr_mode = (%d)\n",mode);
+                mode = (ciphermode_t)ioctl_param; // Get mode parameter passed to ioctl by user 
+                printk(KERN_INFO "new mode = (%d)\n", mode);
+                iowrite8(mode, vbaseaddr + XAESCBC_AXILITES_ADDR_MODE_DATA); // write new mode value to memory 
 
-      // improper ioctl number, return error
-    default:
-      printk(KERN_INFO "ERROR, IMPROMER IOCTL NUMBER <%d>\n", ioctl_num);
-      retval = -ENOTTY;
-      break;
-  }
-  return retval;
+                // if ioctl call was RESET, manually start the block since there will be no impending write to 
+                // to start the block
+                if (mode == RESET) {
+                    unsigned int ctrl_reg = ioread32(vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL) & 0x80; // read and get bit
+                    iowrite32(ctrl_reg | 0x01, vbaseaddr + XAESCBC_AXILITES_ADDR_AP_CTRL);
+                }
+            }
+            // invalid argument 
+            else  {
+                printk(KERN_INFO "IOCTL_SET_MODE: INVALID MODE\n");
+                retval = -EINVAL; 
+            }
+            break;
+
+        case IOCTL_GET_MODE:
+            printk(KERN_INFO "IOCTL_GET_MODE: mode = (%d)\n", mode);
+            //      retval = put_user(mode, (ciphermode_t*)ioctl_param); // copy mode value back to userspace pointer
+            break;
+
+            // improper ioctl number, return error
+        default:
+            printk(KERN_INFO "ERROR, IMPROMER IOCTL NUMBER <%d>\n", ioctl_num);
+            retval = -ENOTTY;
+            break;
+    }
+    return retval;
 }
 
 
@@ -286,9 +291,9 @@ static long wsaes_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
  */
 static int wsaes_release(struct inode *inodep, struct file *filep)
 {
-  printk(KERN_INFO "wsaes: Device successfully closed\n");
-  numberOpens--;
-  return 0;
+    printk(KERN_INFO "wsaes: Device successfully closed\n");
+    numberOpens--;
+    return 0;
 }
 
 
