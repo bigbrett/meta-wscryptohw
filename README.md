@@ -1,9 +1,9 @@
 [![experimental](http://badges.github.io/stability-badges/dist/experimental.svg)](http://github.com/badges/stability-badges)
 
-# meta-wssha256
-A Yocto meta-layer supporting the kernel driver for a memory-mapped sha256 hardware accelerator. 
+# meta-wscryptohw
+A Yocto meta-layer supporting the AES, SHA256, and RSA hardware crypto blocks for use in a hardware supported vpn running on the Zedboard (Xilinx Zynq-7020) 
 
-Created by Brett Nicholas. 
+Created by Brett Nicholas.
 
 # Dependencies
 This layer depends on:
@@ -16,18 +16,18 @@ This layer depends on:
   branch: master
 ```
 # Table of Contents
-  1. Adding the wssha256 layer to your build
-  2. Testing the kernel driver
+  1. Adding the wscryptohw layer to your build
+  2. Testing the kernel drivers
   3. Misc
   4. TODO
   5. Notes
 
-# 1. Adding the wssha256 layer to your build
+# 1. Adding the wscryptohw layer to your build
 
 In order to use this layer, you need to make the Yocto build system aware of
 it.
 
-Assuming the wssha256 layer exists at the top-level of your yocto build tree, you can add it to the build system by adding the location of the wssha256 layer to bblayers.conf, along with any other layers needed. e.g.:
+Assuming the wscryptohw layer exists at the top-level of your yocto build tree, you can add it to the build system by adding the location of the wscryptohw layer to bblayers.conf, along with any other layers needed. e.g.:
 
 ```
   BBLAYERS ?= " \
@@ -36,27 +36,26 @@ Assuming the wssha256 layer exists at the top-level of your yocto build tree, yo
     /path/to/yocto/meta-yocto-bsp \
     /path/to/yocto/meta-xilinx
     /path/to/yocto/meta-xilinx-tools
-    /path/to/yocto/meta-wssha256 \
+    /path/to/yocto/meta-wscryptohw \
     "
 ```
-The output kernel driver binary can be found at `${WORKDIR}/wssha256kern.ko` and should be automatically installed in your image's /lib/modules folder. If you can't find it, try the following: 
+The output kernel driver binaries can be found at `${WORKDIR}/ws<METHOD>.ko`, where <METHOD> is one of the following crypto methods: aes, sha256, or rsa. The module should be automatically installed in your image's /lib/modules folder. If you can't find it, try the following: 
 ```
-bitbake -e wssha256-mod| grep ^WORKDIR //first find the value of ${WORKDIR}
-find ${WORKDIR} -name "wssha256kern.ko" 
+bitbake -e ws<METHOD>-mod | grep ^WORKDIR //first find the value of ${WORKDIR}
+find ${WORKDIR} -name "ws<METHOD>kern.ko" 
 ```
 # 2. Testing the Kernel Driver
-The wssha256-mod kernel driver (wssha256kern.ko) contains a self-checking test program that can be run in userspace to test the correct operation of the driver. The test program is included in the recipe wssha256test. The test recipe should be automatically built after the wssha256 layer is added to your build. The output files are located at `${WORKDIR}/wssha256test`, or at `${WORKDIR}/image/usr/bin/wssha256test`. See the `wssha256test_${PV}.bb` file if you are unsure.
+Each kernel driver (ws<METHOD>.ko) contains a self-checking test program that can be run in userspace to test the correct operation of the driver. The test program is included in the recipe ws<METHOD>test The test recipe should be automatically built after the layer is added to your build. The output files are located at `${WORKDIR}/ws<METHOD>test`, or at `${WORKDIR}/image/usr/bin/ws<METHOD>test`. See the `ws<METHOD>test_${PV}.bb` file if you are unsure.
 
-If the wssha256test recipe is not added to your build for some reason, you can manually build it using the command `bitbake wssha256test`
+If the test recipe is not added to your build for some reason, you can manually build it using the command `bitbake ws<METHOD>test`
 
 # 3. Misc
 
 Currently, the driver has the base address of the peripheral hard-coded, and does not use the built in device tree. It works, however could use much improvement. I'm sure there are many a lurking oops. There is also the possibility of using a linux device driver framework. 
 
 # 4. TODO 
-1. IOCTL to check if the hardware device is ready (or interrupt support)
-2. Integrate linux device tree support and structures (linux/of.h I think..)
-3. Create helper functions to abstract away the different ways we might want to use the hardware blocks
+1. Integrate linux device tree support and structures (linux/of.h I think..)
+2. Create helper functions to abstract away the different ways we might want to use the hardware blocks
 
 # 5. Notes
 Below are a series of notes to myself. They probably will mean nothing to you.
