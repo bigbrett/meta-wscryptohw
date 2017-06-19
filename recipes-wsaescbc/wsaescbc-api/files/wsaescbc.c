@@ -114,16 +114,18 @@ int32_t aes256setiv(uint8_t *ivp)
 int32_t aes256(int mode, uint8_t *inp, uint32_t inlen, uint8_t *outp, uint32_t *lenp) 
 {
     int32_t fd, ret;
-    int32_t len = *outp;
-
-    // initialize output to all zeros
-    memset((void*)outp,0,len);
 
     // check bounds against max length 
-    if (inlen > AESMAXDATASIZE || len > AESMAXDATASIZE || inlen!=*lenp)
+    if (inlen > AESMAXDATASIZE)
     {
-        fprintf(stderr, "ERROR: Provided data length too large, must be less than %d bytes\n",
-                AESMAXDATASIZE);
+        fprintf(stderr, "ERROR: Provided data length (%d) too large, must be less than %d bytes\n",
+                inlen, AESMAXDATASIZE);
+        return -1;
+    }
+    else if (0 >= inlen)
+    {
+        fprintf(stderr, "ERROR: Provided data length (%d) too small, must be at least 1 bytes\n",
+                inlen);
         return -1;
     }
 
@@ -156,26 +158,61 @@ int32_t aes256(int mode, uint8_t *inp, uint32_t inlen, uint8_t *outp, uint32_t *
         }
     }
 
+    int modlen = inlen % AESBLKSIZE;     // number of data bytes in last block
+    int numpadbytes = AESBLKSIZE-modlen; // number of padding bytes in last block
+    uint8_t lastblock[AESBLKSIZE]; // the last block to send: contains modlen data bytes and numpadbytes padding bytes
 
-    // send the bytes in 16-byte blocks to the LKM for encryption
-    for (int i=0; i<inlen; i+=AESBLKSIZE)
+    // set output length to the nearest non-zero multiple of the block size
+    *lenp = inlen + numpadbytes; 
+
+    // loop boundary for looping through the blocks
+    int origfullblocks_i = *lenp - AESBLKSIZE;
+
+    // Construct the "last block" of data to send, which is composed of the last straggling bytes that don't fit evenly into 
+    // the 16-byte block size. This "last block" is padded out to the block size with a number of "padding bytes", whose values 
+    // are all set to the number of padding bits required. So there will be X bytes with a value of X. The value of the 
+    // padding bytes are all the same, and is just the number of padding bytes required to fill out the last 16-byte block. 
+    // So if there are 4 data bytes (0xBE 0xEE 0xEE 0xEF) left to send in the last block, we then need 12 padding bytes, each
+    // one with the value of value 0x0C (or 12, in base 10). If the data length is an integer multiple of the block size, then 
+    // we just send the message, and the "last block" is 16 bytes of just padding bits (0x10, decimal 16)
+    for (int i=0; i<AESBLKSIZE; i++)
+        lastblock[i] = (i < modlen) ? inp[origfullblocks_i + i] : numpadbytes;
+     
+    // initialize output memory to all zeros
+    memset((void*)outp,0,*lenp);
+   
+    // send each complete 16-byte block of data to the LKM for encryption
+    for (int i=0; i<origfullblocks_i; i+=AESBLKSIZE)
     {
-        printf("i=%d\n",i);
+        printf("sending block i=%d\n",i);
 
-        // send 16 byte chunk from caller to AES block
+        // send 16 byte block from caller to AES block
         ret = write(fd, &(inp[i]), AESBLKSIZE); 
         if (ret < 0) {
             perror("ERROR: Failed to write data to the AES block... ");   
             return errno;                                                      
         }
 
-        // read back processed 16 byte chunk into caller memory from AES block
+        // read back processed 16 byte block into caller memory from AES block
         ret = read(fd, &(outp[i]), AESBLKSIZE);
         if (ret < 0){
             perror("Failed to read data back from the AES block... ");
             return errno;
         }
     }    
+    // send final padded block
+    printf("\n\nLAST BLOCK\n");
+    ret = write(fd, lastblock, AESBLKSIZE); 
+    if (ret < 0) {
+        perror("ERROR: Failed to write data to the AES block... ");   
+        return errno;                                                      
+    }
+    // read back processed final padded block
+    ret = read(fd, &(outp[origfullblocks_i]), AESBLKSIZE);
+    if (ret < 0){
+        perror("Failed to read data back from the AES block... ");
+        return errno;
+    }
 
     // close and exit
     if(close(fd)<0)
@@ -183,6 +220,7 @@ int32_t aes256(int mode, uint8_t *inp, uint32_t inlen, uint8_t *outp, uint32_t *
         perror("aescbc: Error closing file");
         return errno;
     }
+
 
     return 0;
 }
