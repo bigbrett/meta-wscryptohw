@@ -57,7 +57,8 @@ int main (void)
 		exit(1);
 	}
 
-    printf("\n\nInput:  ");
+    // display input
+    printf("\nInput:  ");
     for (int i=0; i<len; i++)
         printf("%c",teststr[i]);
     printf("\n");
@@ -65,7 +66,7 @@ int main (void)
 	// encrypt
     printf("Encrypting.....\n");
 	ret = aes256(ENCRYPT, (uint8_t*)teststr, len, (uint8_t*)buf0, &olen);
-
+    printf("\tinlen = %d,   olen = %d\n",len,olen);
     printf("Ciphertext:  ");
     for (int i=0; i<olen; i++)
         printf("0x%2X ",buf0[i]);
@@ -74,7 +75,7 @@ int main (void)
     // decrypt
     printf("Decrypting.....\n");
 	aes256(DECRYPT, (uint8_t*)buf0, olen, (uint8_t*)buf1, &olen);
-
+    printf("\tinlen = %d,   olen = %d\n",len,olen);
     printf("Decrypted text: ");
     for (int i=0; i<len; i++)
         printf("%c",buf1[i]);
@@ -95,7 +96,7 @@ int main (void)
 		printf("ERROR: invalid Decryption\n");
 		return -1;
 	}
-    printf("\tDecryption Success!");
+    printf("\tDecryption Success!\n");
     
 	return 0;
 }
