@@ -82,12 +82,12 @@ int main (void)
     printf("Decrypting.....\n");
 	aes256(DECRYPT, (uint8_t*)buf0, olen, (uint8_t*)buf1, &olen);
     printf("\tinlen = %d,   olen = %d\n",len,olen);
-    printf("Decrypted text: ");
+    printf("Decrypted text: [ ");
     for (int i=0; i<len; i++)
         printf("%c",buf1[i]);
     for (int i=len; i<olen; i++)
-        printf(" 0x%02X",buf1[i]);
-    printf("\n");
+        printf(", 0x%02X",buf1[i]);
+    printf(" ]\n");
 
     printf("Checking Decryption.....\n");
 	if (memcmp(buf1, teststr, len) != 0)
