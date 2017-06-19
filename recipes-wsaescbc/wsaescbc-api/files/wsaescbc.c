@@ -184,8 +184,6 @@ int32_t aes256(int mode, uint8_t *inp, uint32_t inlen, uint8_t *outp, uint32_t *
     // send each complete 16-byte block of data to the LKM for encryption
     for (int i=0; i<origfullblocks_i; i+=AESBLKSIZE)
     {
-        printf("sending block i=%d\n",i);
-
         // send 16 byte block from caller to AES block
         ret = write(fd, &(inp[i]), AESBLKSIZE); 
         if (ret < 0) {
@@ -201,7 +199,6 @@ int32_t aes256(int mode, uint8_t *inp, uint32_t inlen, uint8_t *outp, uint32_t *
         }
     }    
     // send final padded block
-    printf("\n\nLAST BLOCK\n");
     ret = write(fd, lastblock, AESBLKSIZE); 
     if (ret < 0) {
         perror("ERROR: Failed to write data to the AES block... ");   

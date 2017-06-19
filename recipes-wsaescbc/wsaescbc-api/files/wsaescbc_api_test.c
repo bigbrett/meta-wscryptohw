@@ -25,13 +25,14 @@ int main (void)
 
 
 	uint32_t len = 32;
+    uint32_t olen = 48; 
 	const char teststr[32] = "The Quick Brown Fox Jumped Over "; // string to encrypt
-	char buf0[len];
-	char buf1[len];
+	char buf0[olen];
+	char buf1[olen];
 
 	// zero out result array
-	memset(buf0,0,len);
-	memset(buf1,0,len);
+	memset(buf0,0,olen);
+	memset(buf1,0,olen);
 
 	int ret = aes256init();
 	if (0 != ret)
@@ -56,34 +57,46 @@ int main (void)
 		exit(1);
 	}
 
+    printf("\n\nInput:  ");
+    for (int i=0; i<len; i++)
+        printf("%c",teststr[i]);
+    printf("\n");
+
 	// encrypt
     printf("Encrypting.....\n");
-	ret = aes256(ENCRYPT, (uint8_t*)teststr, len, (uint8_t*)buf0, &len);
+	ret = aes256(ENCRYPT, (uint8_t*)teststr, len, (uint8_t*)buf0, &olen);
+
+    printf("Ciphertext:  ");
+    for (int i=0; i<olen; i++)
+        printf("0x%2X ",buf0[i]);
+    printf("\n");
+
+    // decrypt
+    printf("Decrypting.....\n");
+	aes256(DECRYPT, (uint8_t*)buf0, olen, (uint8_t*)buf1, &olen);
+
+    printf("Decrypted text: ");
+    for (int i=0; i<len; i++)
+        printf("%c",buf1[i]);
+    for (int i=len; i<olen; i++)
+        printf(" 0x%2X",buf1[i]);
+    printf("\n");
+
+    // check results
     printf("Checking Encryption.....\n");
 	if (memcmp(buf0, openSSL_result, len) != 0 || ret != 0)
 	{
 		printf("ERROR: invalid Encryption\n");
 		return -1;
 	}
-
-	// decrypt
-    printf("Decrypting.....\n");
-	aes256(DECRYPT, (uint8_t*)buf0, len, (uint8_t*)buf1, &len);
-    printf("Checking Decryption.....\n");
+    printf("\tEncryption success!\nChecking Decryption.....\n");
 	if (memcmp(buf1, teststr, len) != 0)
 	{
 		printf("ERROR: invalid Decryption\n");
 		return -1;
 	}
+    printf("\tDecryption Success!");
     
-    printf("Input:  ");
-    for (int i=0; i<len; i++)
-        printf("%C",teststr[i]);
-    printf("\nOutput: ");
-    for (int i=0; i<len; i++)
-        printf("%C",buf1[i]);
-    printf("\n\nSuccess!\n");
-
 	return 0;
 }
 
