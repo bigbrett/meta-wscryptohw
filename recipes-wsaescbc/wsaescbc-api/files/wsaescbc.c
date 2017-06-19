@@ -55,7 +55,7 @@ int32_t aes256setkey(uint8_t *keyp)
         return errno;
     }
 
-    printf("setting key\n");
+    //printf("setting key\n");
     ret = ioctl(fd, IOCTL_SET_MODE, SET_KEY); // switch mode 
     if (ret < 0) {
         perror("Failed to set mode.");
@@ -88,7 +88,7 @@ int32_t aes256setiv(uint8_t *ivp)
         return errno;
     }
 
-    printf("setting IV\n");
+    //printf("setting IV\n");
     ret = ioctl(fd, IOCTL_SET_MODE, SET_IV); // switch mode 
     if (ret < 0) {
         perror("Failed to set mode.");

@@ -24,9 +24,14 @@ int main (void)
 
 
 
-	uint32_t len = 32;
-    uint32_t olen = 48; 
-	const char teststr[32] = "The Quick Brown Fox Jumped Over "; // string to encrypt
+	//uint32_t len = 32;
+    //uint32_t olen = 48; 
+	//char teststr[] = "The Quick Brown Fox Jumped Over "; // string to encrypt
+	char* teststr = "The Quick Brown Fox Jumped Over"; // string to encrypt
+    
+    uint32_t len = strlen(teststr); 
+    uint32_t olen = (len < AESBLKSIZE) ? len : len + (AESBLKSIZE - (len % AESBLKSIZE));
+
 	char buf0[olen];
 	char buf1[olen];
 
@@ -58,6 +63,7 @@ int main (void)
 	}
 
     // display input
+    printf("ORIG LENGTHS: len = %d, olen = %d\n",len,olen);
     printf("\nInput:  ");
     for (int i=0; i<len; i++)
         printf("%c",teststr[i]);
@@ -69,7 +75,7 @@ int main (void)
     printf("\tinlen = %d,   olen = %d\n",len,olen);
     printf("Ciphertext:  ");
     for (int i=0; i<olen; i++)
-        printf("0x%2X ",buf0[i]);
+        printf("0x%02X ",buf0[i]);
     printf("\n");
 
     // decrypt
@@ -80,17 +86,10 @@ int main (void)
     for (int i=0; i<len; i++)
         printf("%c",buf1[i]);
     for (int i=len; i<olen; i++)
-        printf(" 0x%2X",buf1[i]);
+        printf(" 0x%02X",buf1[i]);
     printf("\n");
 
-    // check results
-    printf("Checking Encryption.....\n");
-	if (memcmp(buf0, openSSL_result, len) != 0 || ret != 0)
-	{
-		printf("ERROR: invalid Encryption\n");
-		return -1;
-	}
-    printf("\tEncryption success!\nChecking Decryption.....\n");
+    printf("Checking Decryption.....\n");
 	if (memcmp(buf1, teststr, len) != 0)
 	{
 		printf("ERROR: invalid Decryption\n");
