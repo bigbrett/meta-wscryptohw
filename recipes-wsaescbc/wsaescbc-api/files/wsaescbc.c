@@ -173,12 +173,12 @@ int32_t aes256(int mode, uint8_t *inp, uint32_t inlen, uint8_t *outp, uint32_t *
         // loop boundary for looping through the blocks
         orignumbytes = *lenp - AESBLKSIZE;
 
-        // Construct the "last block" of data to send, which is composed of the last straggling bytes that don't fit evenly into 
-        // the 16-byte block size. This "last block" is padded out to the block size with a number of "padding bytes", whose values 
+        // Construct the "last block" of data to send, composed of the last straggling bytes that don't fit evenly into the 
+        // 16-byte block size. This "last block" is padded out to the block size with a number of "padding bytes", whose values 
         // are all set to the number of padding bits required. So there will be X bytes with a value of X. The value of the 
         // padding bytes are all the same, and is just the number of padding bytes required to fill out the last 16-byte block. 
         // So if there are 4 data bytes (0xBE 0xEE 0xEE 0xEF) left to send in the last block, we then need 12 padding bytes, each
-        // one with the value of value 0x0C (or 12, in base 10). If the data length is an integer multiple of the block size, then 
+        // with the value of value 0x0C (or 12, in base 10). If the data length is an integer multiple of the block size, then 
         // we just send the message, and the "last block" is 16 bytes of just padding bits (0x10, decimal 16)
         for (int i=0; i<AESBLKSIZE; i++)
             lastblock[i] = (i < modlen) ? inp[orignumbytes + i] : numpadbytes;
