@@ -158,7 +158,7 @@ int32_t aes256(int mode, uint8_t *inp, uint32_t inlen, uint8_t *outp, uint32_t *
         }
     }
 
-    int orignumbytes = *lenp - AESBLKSIZE; // The original number of bytes in the input data
+    int orignumbytes; // The original number of bytes in the input data
     uint8_t lastblock[AESBLKSIZE]; // the last block to send if we are encrypting ONLY.  
 
     // if we are encrypting the data, we must deal with padding the data to encrypt
