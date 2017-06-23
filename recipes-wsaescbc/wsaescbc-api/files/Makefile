@@ -12,7 +12,7 @@ all: lib test
 
 # Static Library 
 lib:
-	gcc -Wall -g -c -o $(OBJFILE) $(SRCFILE) 
+	gcc -Wall -g -c -o $(OBJFILE) $(SRCFILE) -fPIC
 	ar -cvq $(LIBFILE) $(OBJFILE)
 
 test: lib
