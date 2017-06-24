@@ -7,8 +7,8 @@ SECTION = "examples"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 DEPENDS = "openssl"
-
-SRC_URI = "git://github.com/bigbrett/wsaesengine.git;branch=master"
+#TODO check branch
+SRC_URI = "git://github.com/bigbrett/wsaesengine.git;branch=noapi" 
 SRCREV = "${AUTOREV}"
 
 
@@ -16,7 +16,7 @@ SRCREV = "${AUTOREV}"
 FILES_${PN} += " ${libdir} \
                  ${bindir} \ 
                  ${libdir}/*.so \
-                 ${bindir}/wsaesenginetest "
+                 ${bindir}/wsaescbcenginetest "
 
 # Ensure that the DEV package doesn't grab them first
 # commenting this out did not change anything
@@ -26,9 +26,8 @@ S = "${WORKDIR}/git"
 
 # Override all the makefile variables for cross compilation
 PARALLEL_MAKE = ""
-EXTRA_OEMAKE = "'CC=${CC}' \
-                'LIB=-Llib -L=${libdir} ${LDFLAGS} -lcrypto -lwssha'"
-#                'LIB=-Llib -L=${libdir} ${LDFLAGS} -lcrypto -lwssha'"
+#EXTRA_OEMAKE = "'CC=${CC} LIB=-Llib -L=${libdir} ${LDFLAGS} -lcrypto'"
+EXTRA_OEMAKE = "'CC=${CC} -L=${libdir} ${LDFLAGS} -lcrypto'"
 
 #LIB = "-Llib -L=${libdir} ${LDFLAGS}"
 #INC = "-I include -I =/usr/include/openssl"
@@ -45,8 +44,8 @@ EXTRA_OEMAKE = "'CC=${CC}' \
 do_install() {
 # install engine shared library
       install -d ${D}${libdir}
-      install -m 0755 ${S}/bin/libwsaesengine.so ${D}${libdir}
+      install -m 0755 ${S}/bin/libwsaescbcengine.so ${D}${libdir}
 # install test binary
       install -d ${D}${bindir}
-      install -m 0755 ${S}/bin/wsaesenginetest ${D}{bindir}
+      install -m 0755 ${S}/bin/wsaescbcenginetest ${D}{bindir}
 }
