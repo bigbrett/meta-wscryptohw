@@ -16,7 +16,7 @@ SRCREV = "${AUTOREV}"
 FILES_${PN} += " ${libdir} \
                  ${bindir} \ 
                  ${libdir}/*.so \
-                 ${bindir}/wsaescbcenginetest "
+                 ${bindir}/wsaesenginetest "
 
 # Ensure that the DEV package doesn't grab them first
 # commenting this out did not change anything
@@ -44,8 +44,8 @@ EXTRA_OEMAKE = "'CC=${CC} -L=${libdir} ${LDFLAGS} -lcrypto'"
 do_install() {
 # install engine shared library
       install -d ${D}${libdir}
-      install -m 0755 ${S}/bin/libwsaescbcengine.so ${D}${libdir}
+      install -m 0755 ${S}/bin/libwsaesengine.so ${D}${libdir}
 # install test binary
       install -d ${D}${bindir}
-      install -m 0755 ${S}/bin/wsaescbcenginetest ${D}{bindir}
+      install -m 0755 ${S}/bin/wsaesenginetest ${D}{bindir}
 }

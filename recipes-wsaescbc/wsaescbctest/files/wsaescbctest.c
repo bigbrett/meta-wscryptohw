@@ -34,50 +34,7 @@ const char openSSL_result[32] = { 0xA8, 0x87, 0x01, 0xE4, 0x43, 0x4F, 0x59, 0x00
 const char teststr[32] = "The Quick Brown Fox Jumped Over "; // string to encrypt
 const char* devstr = "/dev/wsaeschar";
 
-//int32_t aes256setkey(int fd, uint8_t *keyp)
-//{
-//	return XST_SUCCESS;
-//}
-//
-//
-///*
-// *
-// */
-//int32_t aes256setiv(uint8_t *ivp)
-//{
-//	return XST_SUCCESS;
-//}
-//
-//
-///*
-// *
-// */
-//int32_t aes256_init(void)
-//{
-//	XAescbc_DisableAutoRestart(&xaescbc);
-//	return XST_SUCCESS;
-//}
-//
-//
-///*
-// *
-// */
-//int32_t aes256_reset(void)
-//{
-//	return XST_SUCCESS;
-//}
-//
-//
-///*
-// *
-// */
-//int32_t aes256(int mode,uint8_t *inp,uint32_t inlen,uint8_t *outp,uint32_t *outlenp)
-//{
-//	return XST_SUCCESS;
-//}
-//
-//
-//
+
 static void dumpmsg( uint8_t *pbuf ) {
     int index;
 
