@@ -203,7 +203,7 @@ static ssize_t wssha256_write(struct file *filep, const char *buffer, size_t len
 	iowrite32(SHA256_MSG_SIZE, vbaseaddr+XSHA256_AXILITES_ADDR_BYTES_DATA);// set bytes to 256
 	iowrite32(0, vbaseaddr+XSHA256_AXILITES_ADDR_BASE_OFFSET_DATA); // set offset to 0 
 
-	// copy data from userspace into kernel message buffer
+	// copy len bytes of data from userspace into kernel message buffer
 	copy_from_user(message, buffer, len);
 
 	// write data from kernel message buffer to PL peripheral "message" register region
