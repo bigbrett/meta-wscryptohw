@@ -200,7 +200,8 @@ static ssize_t wssha256_read(struct file *filep, char *buffer, size_t len, loff_
 static ssize_t wssha256_write(struct file *filep, const char *buffer, size_t len, loff_t *offset)
 {  
 	// init hardware parameters 
-	iowrite32(SHA256_MSG_SIZE, vbaseaddr+XSHA256_AXILITES_ADDR_BYTES_DATA);// set bytes to 256
+	//iowrite32(SHA256_MSG_SIZE, vbaseaddr+XSHA256_AXILITES_ADDR_BYTES_DATA);// set bytes to 256
+	iowrite32(len, vbaseaddr+XSHA256_AXILITES_ADDR_BYTES_DATA); // set bytes to "len"
 	iowrite32(0, vbaseaddr+XSHA256_AXILITES_ADDR_BASE_OFFSET_DATA); // set offset to 0 
 
 	// copy len bytes of data from userspace into kernel message buffer
