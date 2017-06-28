@@ -1,9 +1,9 @@
 /**
- * @file   wssha256.c
- * @author Brett Nicholas
- * @date   5/11/17
- * @version 0.1
- * @brief   
+ * file:    wssha256kern.c
+ * author:  Brett Nicholas
+ * date:    5/11/17
+ * version: 0.1
+ * brief:   
  * Linux loadable kernel module (LKM) for sha256 acceleator. This module maps to /dev/wssha256 and
  * comes with a helper C program that can be run in Linux user space to communicate with this LKM.
  * 
@@ -57,15 +57,16 @@ static struct class*  wssha256charClass  = NULL; ///< The device-driver class st
 static struct device* wssha256charDevice = NULL; ///< The device-driver device struct pointer
 
 
-// The prototype functions for the character driver -- must come before the struct definition
+// Prototype functions for the character driver -- must come before the struct definition
 static int     wssha256_open(struct inode *, struct file *);
 static int     wssha256_release(struct inode *, struct file *);
 static ssize_t wssha256_read(struct file *, char *, size_t, loff_t *);
 static ssize_t wssha256_write(struct file *, const char *, size_t, loff_t *);
 static void wssha256_runonce_blocking(void);
 
-/** @brief Devices are represented as file structure in the kernel. The file_operations structure from
- *  /linux/fs.h lists the callback functions that you wish to associated with your file operations *  using a C99 syntax structure. char devices usually implement open, read, write and release calls
+/**  Devices are represented as file structure in the kernel. The file_operations structure from
+ *  /linux/fs.h lists the callback functions that you wish to associated with your file operations 
+ *   using a C99 syntax structure. char devices usually implement open, read, write and release calls
  */
 static struct file_operations fops =
 {
@@ -76,7 +77,7 @@ static struct file_operations fops =
 };
 
 
-/** @brief The LKM initialization function
+/**  The LKM initialization function
  *  The static keyword restricts the visibility of the function to within this C file. The __init
  *  macro means that for a built-in driver (not a LKM) the function is only used at initialization
  *  time and that it can be discarded and its memory freed up after that point.
@@ -136,7 +137,7 @@ static int __init wssha256_init(void)
 }
 
 
-/** @brief The LKM cleanup function
+/**  The LKM cleanup function
  *  Similar to the initialization function, it is static. The __exit macro notifies that if this
  *  code is used for a built-in driver (not a LKM) that this function is not required.
  */
@@ -151,10 +152,10 @@ static void __exit wssha256_exit(void){
 }
 
 
-/** @brief The device open function that is called each time the device is opened
+/**  The device open function that is called each time the device is opened
  *  This will only increment the numberOpens counter in this case.
- *  @param inodep A pointer to an inode object (defined in linux/fs.h)
- *  @param filep A pointer to a file object (defined in linux/fs.h)
+ *  param: inodep A pointer to an inode object (defined in linux/fs.h)
+ *  param: filep A pointer to a file object (defined in linux/fs.h)
  */
 static int wssha256_open(struct inode *inodep, struct file *filep){
 	if (numberOpens > 0)
@@ -168,13 +169,13 @@ static int wssha256_open(struct inode *inodep, struct file *filep){
 }
 
 
-/** @brief This function is called whenever device is being read from user space i.e. data is
+/**  This function is called whenever device is being read from user space i.e. data is
  *  being sent from the device to the user. In this case is uses the copy_to_user() function to
  *  send the buffer string to the user and captures any errors.
- *  @param filep A pointer to a file object (defined in linux/fs.h)
- *  @param buffer The pointer to the buffer to which this function writes the data
- *  @param len The length of the buffer
- *  @param offset The offset if required
+ *  param: filep A pointer to a file object (defined in linux/fs.h)
+ *  param: buffer The pointer to the buffer to which this function writes the data
+ *  param: len The length of the buffer
+ *  param: offset The offset if required
  */
 static ssize_t wssha256_read(struct file *filep, char *buffer, size_t len, loff_t *offset)
 {
@@ -189,13 +190,13 @@ static ssize_t wssha256_read(struct file *filep, char *buffer, size_t len, loff_
 }
 
 
-/** @brief This function is called whenever the device is being written to from user space i.e.
+/**  This function is called whenever the device is being written to from user space i.e.
  *  data is sent to the device from the user. The data is copied to the message[] array in this
  *  LKM using the copy_from_user() function along with the length of the string.
- *  @param filep A pointer to a file object
- *  @param buffer The buffer to that contains the string to write to the device
- *  @param len The length of the array of data that is being passed in the const char buffer
- *  @param offset The offset if required
+ *  param: filep A pointer to a file object
+ *  param: buffer The buffer to that contains the string to write to the device
+ *  param: len The length of the array of data that is being passed in the const char buffer
+ *  param: offset The offset if required
  */
 static ssize_t wssha256_write(struct file *filep, const char *buffer, size_t len, loff_t *offset)
 {  
@@ -218,10 +219,10 @@ static ssize_t wssha256_write(struct file *filep, const char *buffer, size_t len
 }
 
 
-/** @brief The device release function that is called whenever the device is closed/released by
+/**  The device release function that is called whenever the device is closed/released by
  *  the userspace program
- *  @param inodep A pointer to an inode object (defined in linux/fs.h)
- *  @param filep A pointer to a file object (defined in linux/fs.h)
+ *  param: inodep A pointer to an inode object (defined in linux/fs.h)
+ *  param: filep A pointer to a file object (defined in linux/fs.h)
  */
 static int wssha256_release(struct inode *inodep, struct file *filep){
 	//printk(KERN_INFO "wssha256: Device successfully closed\n");
@@ -231,7 +232,7 @@ static int wssha256_release(struct inode *inodep, struct file *filep){
 
 
 /*
- * Helper function to check if the block has finished and is ready for the next input
+ * Helper function to start the block, and then check if it has finished and is ready for the next input
  */
 static void wssha256_runonce_blocking(void)
 {
@@ -245,7 +246,8 @@ static void wssha256_runonce_blocking(void)
    while (! (ioread32(vbaseaddr + XSHA256_AXILITES_ADDR_AP_CTRL)>>1) & 0x1); 
 }
 
-/** @brief A module must use the module_init() module_exit() macros from linux/init.h, which
+
+/**  A module must use the module_init() module_exit() macros from linux/init.h, which
  *  identify the initialization function at insertion time and the cleanup function (as
  *  listed above)
  */
