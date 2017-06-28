@@ -17,6 +17,7 @@
 #include <linux/fs.h>             // Header for the Linux file system support
 #include <asm/uaccess.h>          // Required for the copy to user function
 #include <linux/io.h>
+#include <linux/sizes.h>
 
 // TODO this needs to be changed...we should not be hardcoding these
 #define WSSHA256BASEADDR 0x43C00000
