@@ -28,19 +28,6 @@ S = "${WORKDIR}/git"
 PARALLEL_MAKE = ""
 EXTRA_OEMAKE = "'CC=${CC}' \
                 'LIB=-Llib -L=${libdir} ${LDFLAGS} -lcrypto -lwssha'"
-#                'LIB=-Llib -L=${libdir} ${LDFLAGS} -lcrypto -lwssha'"
-
-#LIB = "-Llib -L=${libdir} ${LDFLAGS}"
-#INC = "-I include -I =/usr/include/openssl"
-#
-#do_compile() {
-## compile source code
-#      mkdir ${S}/build ${S}/bin
-#      ${CC} ${CFLAGS} -fPIC ${S}/src/wssha256engine.c -c -o ${S}/build/wssha256engine.o 
-#      ${CC} -shared -o ${S}/bin/libwssha256engine.so ${LIB} ${S}/build/wssha256engine.o
-## compile test TODO doesn't work
-#      ${CC} ${CFLAGS} -o ${S}/bin/test ${S}/test/wssha256engine_test.c ${INC} ${LIB} 
-#}
 
 do_install() {
 # install engine shared library
