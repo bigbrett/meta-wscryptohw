@@ -4,7 +4,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 
 inherit module cmake
 
-SRC_URI = "git://github.com/bigbrett/wssha256-kmod.git;branch=kmodtest"
+SRC_URI = "git://github.com/bigbrett/wssha256-kmod.git;branch=master"
 SRCREV = "${AUTOREV}"
 
 S = "${WORKDIR}/git"
@@ -20,7 +20,7 @@ FILES_${PN} += " ${libdir} \
 # commenting this out did not change anything
 FILES_SOLIBSDEV = ""
 
-EXTRA_OECMAKE = "-DKERNEL_SRC=${STAGING_KERNEL_DIR}"
+EXTRA_OECMAKE = "-DKERNEL_SRC=${STAGING_KERNEL_DIR} "
 
 # The inherit of module.bbclass will automatically name module packages with
 # "kernel-module-" prefix as required by the oe-core build environment.
