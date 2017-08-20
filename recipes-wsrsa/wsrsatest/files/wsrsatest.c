@@ -64,7 +64,7 @@ int main (void)
     {
         .base = (char*)plaintext_golden_ans,
         .exponent = (char*)publexp_arr,
-        .modulus = (char*)modlus_arr,
+        .modulus = (char*)modulus_arr,
 
     };
 
@@ -144,7 +144,7 @@ int main (void)
     memcpy(pubdata.base, buf, RSA_SIZE_BYTES);
 
     // Clear ciphertext out of result buffer
-    memset(buf0,0,32);
+    memset(buf,0,RSA_SIZE_BYTES);
 
     // Write ciphertext back to hardware
     printf(">>>TEST: DECRYPT WRITE \n");
