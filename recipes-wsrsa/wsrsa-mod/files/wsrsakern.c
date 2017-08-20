@@ -20,8 +20,8 @@
 #include <linux/sizes.h>
 #include "wsrsakern.h" 						// ioctl numbers defined here
 
-// TODO this needs to be changed...we should not be hardcoding these
-#define WSRSABASEADDR 0x43C00000
+// These are pulled straight from the Vivado exported hardware
+#define WSRSABASEADDR 0x43C00000 // mirrors XPAR_WSRSA1024_0_S_AXI_AXILITES_BASEADDR in xparameters.h
 #define XWSRSA1024_AXILITES_ADDR_AP_CTRL         0x000
 #define XWSRSA1024_AXILITES_ADDR_GIE             0x004
 #define XWSRSA1024_AXILITES_ADDR_IER             0x008
