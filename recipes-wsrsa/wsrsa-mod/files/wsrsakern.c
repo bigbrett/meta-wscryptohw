@@ -21,7 +21,7 @@
 #include "wsrsakern.h" 						// ioctl numbers defined here
 
 // TODO this needs to be changed...we should not be hardcoding these
-#define WSRSABASEADDR 0x43C20000
+#define WSRSABASEADDR 0x43C00000
 #define XWSRSA1024_AXILITES_ADDR_AP_CTRL         0x000
 #define XWSRSA1024_AXILITES_ADDR_GIE             0x004
 #define XWSRSA1024_AXILITES_ADDR_IER             0x008
@@ -47,8 +47,6 @@
 #define XWSRSA1024_AXILITES_ADDR_RESULT_V_CTRL   0x224
 
 
-//#define RSA_SIZE_BYTES 128
-
 #define  DEVICE_NAME "wsrsachar"    ///< The device will appear at /dev/wsrsa using this value
 #define  CLASS_NAME  "wsrsa"        ///< The device class -- this is a character device driver
 
@@ -62,18 +60,9 @@ static void __iomem *vbaseaddr = NULL;          // void pointer to virtual memor
 // Operation mode of the rsa block
 static rsamode_t mode = ENCRYPT;
 
-static volatile unsigned char data_out[RSA_SIZE_BYTES]; // Memory for bytes passed back to userspace
-
-//typedef struct {
-//    char base[RSA_SIZE_BYTES];
-//    char exponent[RSA_SIZE_BYTES];
-//    char modulus[RSA_SIZE_BYTES];
-//} RSAPublic_t;
-//RSAPublic_t PublicData; // Memory for bytes passed from userspace
-
-volatile static int numberOpens = 0;              // Counts the number of times the device is opened
-static struct class*  wsrsacharClass  = NULL; /// The device-driver class struct pointer
-static struct device* wsrsacharDevice = NULL; /// The device-driver device struct pointer
+volatile static int numberOpens = 0;          // Counts the number of times the device is opened
+static struct class*  wsrsacharClass  = NULL; // The device-driver class struct pointer
+static struct device* wsrsacharDevice = NULL; // The device-driver device struct pointer
 
 
 // The prototype functions for the character driver -- must come before the struct definition
@@ -237,12 +226,20 @@ static ssize_t wsrsa_write(struct file *filep, const char *buffer, size_t len, l
 
     // copy base from kmem into AXI memory
     memcpy_toio(vbaseaddr+XWSRSA1024_AXILITES_ADDR_BASE_V_DATA, PublicData.base, RSA_SIZE_BYTES);
+    print_hex_dump_bytes(".base    = ",0, PublicData.base, RSA_SIZE_BYTES);
 
     // copy exponent from kmem into AXI memory
     memcpy_toio(vbaseaddr+XWSRSA1024_AXILITES_ADDR_PUBLEXP_V_DATA, PublicData.exponent, RSA_SIZE_BYTES);
+    print_hex_dump_bytes(".exp     = ",0,PublicData.exponent,RSA_SIZE_BYTES);
 
     // copy modulus from kmem into AXI memory
     memcpy_toio(vbaseaddr+XWSRSA1024_AXILITES_ADDR_MODULUS_V_DATA, PublicData.modulus, RSA_SIZE_BYTES);
+    print_hex_dump_bytes(".modulus = ",0,PublicData.modulus,RSA_SIZE_BYTES);
+    printk(KERN_DEFAULT "--------------------------------------------------------------");
+
+    print_hex_dump_bytes("Kbase_dest = ",0,vbaseaddr+XWSRSA1024_AXILITES_ADDR_BASE_V_DATA,   RSA_SIZE_BYTES);
+    print_hex_dump_bytes("Kexp_dest  = ",0,vbaseaddr+XWSRSA1024_AXILITES_ADDR_PUBLEXP_V_DATA,RSA_SIZE_BYTES);
+    print_hex_dump_bytes("Kmod_dest  = ",0,vbaseaddr+XWSRSA1024_AXILITES_ADDR_MODULUS_V_DATA,RSA_SIZE_BYTES);
 
     // start RSA block to encrypt/decrypt
     wsrsa_runonce_blocking();

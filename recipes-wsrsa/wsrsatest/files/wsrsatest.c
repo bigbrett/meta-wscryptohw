@@ -48,9 +48,9 @@ const char* devstr = "/dev/wsrsachar";
 
 static void dumpmsg( uint8_t *pbuf ) {
     int index;
-    printf("0x%02X",pbuf[0]);
+    printf("0x%X",pbuf[0]);
     for( index = 1; index < RSA_SIZE_BYTES; index++ ) {
-        printf(",%02X", pbuf[index]);
+        printf(",0x%X", pbuf[index]);
     }
     printf("\n");
 }
@@ -60,13 +60,19 @@ int main (void)
     int ret, fd, errcnt;
 
     // This is the structure we pass to kmem when we write to it
-    RSAPublic_t pubdata = 
-    {
-        .base = (char*)plaintext_golden_ans,
-        .exponent = (char*)publexp_arr,
-        .modulus = (char*)modulus_arr,
+    RSAPublic_t pubdata;
+    memcpy(pubdata.base, plaintext_golden_ans, RSA_SIZE_BYTES);
+    memcpy(pubdata.exponent, publexp_arr, RSA_SIZE_BYTES);
+    memcpy(pubdata.modulus, modulus_arr, RSA_SIZE_BYTES);
 
-    };
+    printf("RSA VALS: \n");
+    printf("base = ");dumpmsg(pubdata.base);
+    printf("exp  = ");dumpmsg(pubdata.exponent);
+    printf("mod  = ");dumpmsg(pubdata.modulus);
+    printf("sizeof(RSAPublic_t) = %d\n",sizeof(RSAPublic_t));
+    //for (int i=0; i<RSA_SIZE_BYTES; i++)
+    //    printf(",0x%02X",pubdata.base[i]);
+    //printf("\n");
 
 
     // Open the device with read/write access

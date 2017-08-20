@@ -19,6 +19,8 @@
 #include <linux/ioctl.h>
 
 
+#define RSA_SIZE_BYTES 128
+
 /*
  * These are the modes that the module can be in, set using IOCTL
  */
@@ -32,8 +34,6 @@ typedef struct {
     char exponent[RSA_SIZE_BYTES];
     char modulus[RSA_SIZE_BYTES];
 } RSAPublic_t;
-
-#define RSA_SIZE_BYTES 128
 
 /* The major device number. We can't rely on dynamic 
  * registration any more, because ioctls need to know 
@@ -56,7 +56,7 @@ typedef struct {
  * The third argument is the type we want to get from 
  * the process to the kernel.
  */
-#define IOCTL_SET_MODE _IOR(MAJOR_NUM, 0, char) /* Set the mode of the device driver */
-#define IOCTL_GET_MODE _IOR(MAJOR_NUM, 1, char) /* Get the mode of the device driver */
+#define IOCTL_SET_MODE _IOR(MAJOR_NUM, 0, char) /* Set the message of the device driver */
+#define IOCTL_GET_MODE _IOR(MAJOR_NUM, 1, char) /* Get the message of the device driver */
  
 #endif
