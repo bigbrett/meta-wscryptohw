@@ -1,6 +1,6 @@
 /**
  * @file   testwssha256kern.c
- * @author Derek Molloy
+ * @author Brett Nicholas
  * @date   7 April 2015
  * @version 0.1
  * @brief  A Linux user space program that communicates with the wssha256kern.c LKM. It passes a
