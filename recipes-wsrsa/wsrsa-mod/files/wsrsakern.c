@@ -44,7 +44,6 @@
 #define XWSRSA1024_AXILITES_BITS_RESULT_V_DATA   1024
 #define XWSRSA1024_AXILITES_ADDR_RESULT_V_DATA_  0x1cc
 #define XWSRSA1024_AXILITES_BITS_RESULT_V_DATA   1024
-#define XWSRSA1024_AXILITES_ADDR_RESULT_V_CTRL   0x224
 
 
 #define  DEVICE_NAME "wsrsachar"    ///< The device will appear at /dev/wsrsa using this value
@@ -143,11 +142,13 @@ static int __init wsrsa_init(void)
     }
     printk(KERN_INFO "wsrsa1024: device class created correctly\n"); // Made it! device was initialized
 
-    // init hardware parameters 
+    // init mode to ENCRYPT
     printk(KERN_INFO "wsrsa1024: initializing wsrsa block to mode ENCRYPT\n");
     mode = ENCRYPT;
     iowrite8(mode, vbaseaddr + XWSRSA1024_AXILITES_ADDR_MODE_DATA); // write new mode value to memory 
 
+    // Disable autorestart
+    iowrite8(0, vbaseaddr + XWSRSA1024_AXILITES_ADDR_AP_CTRL);
     return 0;
 }
 
@@ -196,10 +197,20 @@ static int wsrsa_open(struct inode *inodep, struct file *filep){
  */
 static ssize_t wsrsa_read(struct file *filep, char *buffer, size_t len, loff_t *offset)
 {
-    char data_out[RSA_SIZE_BYTES]; // Memory for bytes passed back to userspace
+    unsigned int data_out[32]; // Memory for bytes passed back to userspace
 
     // copyt ciphertext/plaintext data_from AXI Memory to kmem
-    memcpy_fromio(data_out, vbaseaddr+XWSRSA1024_AXILITES_ADDR_RESULT_V_DATA, RSA_SIZE_BYTES);
+    //memcpy_fromio(data_out, vbaseaddr+XWSRSA1024_AXILITES_ADDR_RESULT_V_DATA, RSA_SIZE_BYTES);
+
+    printk(KERN_INFO "RESULT = ");
+    unsigned int *reg = vbaseaddr+XWSRSA1024_AXILITES_ADDR_RESULT_V_DATA;
+    int i;
+    for (i=0; i<32; i++)
+    {
+        data_out[i] = ioread32(reg++);
+        printk(KERN_CONT "0x%08X, ",data_out[i]);
+    }
+    printk(KERN_INFO "\n");
 
     // Copy data_out from kmem into userspace (*to,*from,size)
     copy_to_user(buffer, data_out, RSA_SIZE_BYTES);
@@ -223,23 +234,39 @@ static ssize_t wsrsa_write(struct file *filep, const char *buffer, size_t len, l
 
     // copy base,exponent,modulus from userspace-->kmem struct
     copy_from_user(&PublicData, buffer, sizeof(RSAPublic_t)); 
-
-    // copy base from kmem into AXI memory
-    memcpy_toio(vbaseaddr+XWSRSA1024_AXILITES_ADDR_BASE_V_DATA, PublicData.base, RSA_SIZE_BYTES);
     print_hex_dump_bytes(".base    = ",0, PublicData.base, RSA_SIZE_BYTES);
-
-    // copy exponent from kmem into AXI memory
-    memcpy_toio(vbaseaddr+XWSRSA1024_AXILITES_ADDR_PUBLEXP_V_DATA, PublicData.exponent, RSA_SIZE_BYTES);
     print_hex_dump_bytes(".exp     = ",0,PublicData.exponent,RSA_SIZE_BYTES);
-
-    // copy modulus from kmem into AXI memory
-    memcpy_toio(vbaseaddr+XWSRSA1024_AXILITES_ADDR_MODULUS_V_DATA, PublicData.modulus, RSA_SIZE_BYTES);
     print_hex_dump_bytes(".modulus = ",0,PublicData.modulus,RSA_SIZE_BYTES);
-    printk(KERN_DEFAULT "--------------------------------------------------------------");
 
-    print_hex_dump_bytes("Kbase_dest = ",0,vbaseaddr+XWSRSA1024_AXILITES_ADDR_BASE_V_DATA,   RSA_SIZE_BYTES);
-    print_hex_dump_bytes("Kexp_dest  = ",0,vbaseaddr+XWSRSA1024_AXILITES_ADDR_PUBLEXP_V_DATA,RSA_SIZE_BYTES);
-    print_hex_dump_bytes("Kmod_dest  = ",0,vbaseaddr+XWSRSA1024_AXILITES_ADDR_MODULUS_V_DATA,RSA_SIZE_BYTES);
+    // copy base from kmem into AXI memory WORD AT A TIME 
+    int byte_offset;
+    //printk(KERN_INFO "BASE WRITTEN = ");
+    //printk(KERN_INFO "BASE ADDRS = ");
+    for (byte_offset=0; byte_offset<128; byte_offset+=4) 
+    {
+        iowrite32(*((unsigned int*)(PublicData.base + byte_offset)), vbaseaddr+XWSRSA1024_AXILITES_ADDR_BASE_V_DATA + byte_offset);     
+        //printk(KERN_CONT "0x%08X, ",*((unsigned int*)(PublicData.base + byte_offset)));
+        //printk(KERN_CONT "0x%X ", vbaseaddr+XWSRSA1024_AXILITES_ADDR_BASE_V_DATA + byte_offset);;    
+    }
+    printk(KERN_INFO "\n");
+
+    // copy exponent from kmem into AXI memory WORD AT A TIME 
+    //printk(KERN_INFO "EXP WRITTEN = ");
+    for (byte_offset=0; byte_offset<128; byte_offset+=4) 
+    {
+        iowrite32(*((unsigned int*)(PublicData.exponent+ byte_offset)), vbaseaddr+XWSRSA1024_AXILITES_ADDR_PUBLEXP_V_DATA + byte_offset);     
+        //printk(KERN_CONT "0x%08X, ",*((unsigned int*)(PublicData.exponent+ byte_offset)));
+    }
+    //printk(KERN_INFO "\n");
+
+    // copy modulus from kmem into AXI memory WORD AT A TIME 
+    //printk(KERN_INFO "MOD WRITTEN = ");
+    for (byte_offset=0; byte_offset<128; byte_offset+=4) 
+    {
+        iowrite32(*((unsigned int*)(PublicData.modulus+ byte_offset)), vbaseaddr+XWSRSA1024_AXILITES_ADDR_MODULUS_V_DATA + byte_offset);     
+        //printk(KERN_CONT "0x%08X, ",*((unsigned int*)(PublicData.modulus+ byte_offset)));
+    }    
+    //printk(KERN_INFO "\n");
 
     // start RSA block to encrypt/decrypt
     wsrsa_runonce_blocking();
