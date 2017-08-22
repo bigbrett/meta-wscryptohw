@@ -22,28 +22,28 @@
 
 // These are pulled straight from the Vivado exported hardware
 #define WSRSABASEADDR 0x43C00000 // mirrors XPAR_WSRSA1024_0_S_AXI_AXILITES_BASEADDR in xparameters.h
-#define XWSRSA1024_AXILITES_ADDR_AP_CTRL         0x000
-#define XWSRSA1024_AXILITES_ADDR_GIE             0x004
-#define XWSRSA1024_AXILITES_ADDR_IER             0x008
-#define XWSRSA1024_AXILITES_ADDR_ISR             0x00c
-#define XWSRSA1024_AXILITES_ADDR_MODE_DATA       0x010
-#define XWSRSA1024_AXILITES_BITS_MODE_DATA       2
-#define XWSRSA1024_AXILITES_ADDR_BASE_V_DATA     0x018
-#define XWSRSA1024_AXILITES_BITS_BASE_V_DATA     1024
-#define XWSRSA1024_AXILITES_ADDR_BASE_V_DATA_    0x040
-#define XWSRSA1024_AXILITES_BITS_BASE_V_DATA     1024
-#define XWSRSA1024_AXILITES_ADDR_PUBLEXP_V_DATA  0x09c
-#define XWSRSA1024_AXILITES_BITS_PUBLEXP_V_DATA  1024
-#define XWSRSA1024_AXILITES_ADDR_PUBLEXP_V_DATA_ 0x0c4
-#define XWSRSA1024_AXILITES_BITS_PUBLEXP_V_DATA  1024
-#define XWSRSA1024_AXILITES_ADDR_MODULUS_V_DATA  0x120
-#define XWSRSA1024_AXILITES_BITS_MODULUS_V_DATA  1024
-#define XWSRSA1024_AXILITES_ADDR_MODULUS_V_DATA_ 0x148
-#define XWSRSA1024_AXILITES_BITS_MODULUS_V_DATA  1024
-#define XWSRSA1024_AXILITES_ADDR_RESULT_V_DATA   0x1a4
-#define XWSRSA1024_AXILITES_BITS_RESULT_V_DATA   1024
-#define XWSRSA1024_AXILITES_ADDR_RESULT_V_DATA_  0x1cc
-#define XWSRSA1024_AXILITES_BITS_RESULT_V_DATA   1024
+#define XWSRSA1024_AXILITES_ADDR_AP_CTRL            0x000
+#define XWSRSA1024_AXILITES_ADDR_GIE                0x004
+#define XWSRSA1024_AXILITES_ADDR_IER                0x008
+#define XWSRSA1024_AXILITES_ADDR_ISR                0x00c
+#define XWSRSA1024_AXILITES_ADDR_MODE_DATA          0x010
+#define XWSRSA1024_AXILITES_BITS_MODE_DATA          2
+#define XWSRSA1024_AXILITES_ADDR_BASE_MEM_V_BASE    0x080
+#define XWSRSA1024_AXILITES_ADDR_BASE_MEM_V_HIGH    0x0ff
+#define XWSRSA1024_AXILITES_WIDTH_BASE_MEM_V        32
+#define XWSRSA1024_AXILITES_DEPTH_BASE_MEM_V        32
+#define XWSRSA1024_AXILITES_ADDR_PUBLEXP_MEM_V_BASE 0x100
+#define XWSRSA1024_AXILITES_ADDR_PUBLEXP_MEM_V_HIGH 0x17f
+#define XWSRSA1024_AXILITES_WIDTH_PUBLEXP_MEM_V     32
+#define XWSRSA1024_AXILITES_DEPTH_PUBLEXP_MEM_V     32
+#define XWSRSA1024_AXILITES_ADDR_MODULUS_MEM_V_BASE 0x180
+#define XWSRSA1024_AXILITES_ADDR_MODULUS_MEM_V_HIGH 0x1ff
+#define XWSRSA1024_AXILITES_WIDTH_MODULUS_MEM_V     32
+#define XWSRSA1024_AXILITES_DEPTH_MODULUS_MEM_V     32
+#define XWSRSA1024_AXILITES_ADDR_RESULT_MEM_V_BASE  0x200
+#define XWSRSA1024_AXILITES_ADDR_RESULT_MEM_V_HIGH  0x27f
+#define XWSRSA1024_AXILITES_WIDTH_RESULT_MEM_V      32
+#define XWSRSA1024_AXILITES_DEPTH_RESULT_MEM_V      32
 
 
 #define  DEVICE_NAME "wsrsachar"    ///< The device will appear at /dev/wsrsa using this value
@@ -203,7 +203,7 @@ static ssize_t wsrsa_read(struct file *filep, char *buffer, size_t len, loff_t *
     //memcpy_fromio(data_out, vbaseaddr+XWSRSA1024_AXILITES_ADDR_RESULT_V_DATA, RSA_SIZE_BYTES);
 
     printk(KERN_INFO "RESULT = ");
-    unsigned int *reg = vbaseaddr+XWSRSA1024_AXILITES_ADDR_RESULT_V_DATA;
+    unsigned int *reg = vbaseaddr+XWSRSA1024_AXILITES_ADDR_RESULT_MEM_V_BASE;
     int i;
     for (i=0; i<32; i++)
     {
@@ -244,7 +244,7 @@ static ssize_t wsrsa_write(struct file *filep, const char *buffer, size_t len, l
     //printk(KERN_INFO "BASE ADDRS = ");
     for (byte_offset=0; byte_offset<128; byte_offset+=4) 
     {
-        iowrite32(*((unsigned int*)(PublicData.base + byte_offset)), vbaseaddr+XWSRSA1024_AXILITES_ADDR_BASE_V_DATA + byte_offset);     
+        iowrite32(*((unsigned int*)(PublicData.base + byte_offset)), vbaseaddr+XWSRSA1024_AXILITES_ADDR_BASE_MEM_V_BASE + byte_offset);     
         //printk(KERN_CONT "0x%08X, ",*((unsigned int*)(PublicData.base + byte_offset)));
         //printk(KERN_CONT "0x%X ", vbaseaddr+XWSRSA1024_AXILITES_ADDR_BASE_V_DATA + byte_offset);;    
     }
@@ -254,7 +254,7 @@ static ssize_t wsrsa_write(struct file *filep, const char *buffer, size_t len, l
     //printk(KERN_INFO "EXP WRITTEN = ");
     for (byte_offset=0; byte_offset<128; byte_offset+=4) 
     {
-        iowrite32(*((unsigned int*)(PublicData.exponent+ byte_offset)), vbaseaddr+XWSRSA1024_AXILITES_ADDR_PUBLEXP_V_DATA + byte_offset);     
+        iowrite32(*((unsigned int*)(PublicData.exponent+ byte_offset)), vbaseaddr+XWSRSA1024_AXILITES_ADDR_PUBLEXP_MEM_V_BASE + byte_offset);     
         //printk(KERN_CONT "0x%08X, ",*((unsigned int*)(PublicData.exponent+ byte_offset)));
     }
     //printk(KERN_INFO "\n");
@@ -263,13 +263,19 @@ static ssize_t wsrsa_write(struct file *filep, const char *buffer, size_t len, l
     //printk(KERN_INFO "MOD WRITTEN = ");
     for (byte_offset=0; byte_offset<128; byte_offset+=4) 
     {
-        iowrite32(*((unsigned int*)(PublicData.modulus+ byte_offset)), vbaseaddr+XWSRSA1024_AXILITES_ADDR_MODULUS_V_DATA + byte_offset);     
+        iowrite32(*((unsigned int*)(PublicData.modulus+ byte_offset)), vbaseaddr+XWSRSA1024_AXILITES_ADDR_MODULUS_MEM_V_BASE + byte_offset);     
         //printk(KERN_CONT "0x%08X, ",*((unsigned int*)(PublicData.modulus+ byte_offset)));
     }    
     //printk(KERN_INFO "\n");
 
-    // start RSA block to encrypt/decrypt
-    wsrsa_runonce_blocking();
+    // Set mode to INIT and start block to load data
+    //mode = INIT;
+    //iowrite8(mode, vbaseaddr + XWSRSA1024_AXILITES_ADDR_MODE_DATA); // write new mode value to memory 
+    //wsrsa_runonce_blocking();
+
+    //// TODO REMOVE THIS ONCE WE WANT TO DECRYPT
+    //mode = ENCRYPT;
+    //iowrite8
 
     printk(KERN_INFO "wsrsa1024: Received message of length %zu bytes from userspace\n", len);
     return len;
@@ -297,7 +303,7 @@ static long wsrsa_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
     {
         case IOCTL_SET_MODE:
             // check mode is valid
-            if ( (mode >= 0) && (mode <= 2)) 
+            if ( (mode >= 0) && (mode <= 3)) 
             {
                 printk(KERN_INFO "IOCTL_SET_MODE: curr_mode = (%d)\n",mode);
                 mode = (rsamode_t)ioctl_param; // Get mode parameter passed to ioctl by user 
@@ -305,7 +311,7 @@ static long wsrsa_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
                 iowrite8(mode, vbaseaddr + XWSRSA1024_AXILITES_ADDR_MODE_DATA); // write new mode value to memory 
 
                 // If mode is SET_PRIVKEY, we must run the block once to load key from BRAM 
-                if (mode == SET_PRIVKEY)
+                if (mode == SET_PRIVKEY || mode == ENCRYPT || mode == INIT)
                     wsrsa_runonce_blocking();
             }
             // invalid argument 

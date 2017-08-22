@@ -97,22 +97,30 @@ int main (void)
     printf(">>>TEST: PLAINTEXT = \n");
     dumpmsg((uint8_t*)plaintext_golden_ans);
 
-    // Set mode to encrypt
-    printf(">>>TEST: (IOCTL) SET MODE TO ENCRYPT\n");
-    ret = ioctl(fd, IOCTL_SET_MODE, ENCRYPT); // switch mode 
-    if (ret < 0) {
-        perror(">>>TEST: Failed to set mode to encrypt.");
-        return errno;
-    }
- 
-    // Encrypt using public key by Writing base,exponent,modulus to module
+    // Write input data
     printf(">>>TEST: WRITE \n");
     ret = write(fd, &pubdata, sizeof(RSAPublic_t)); // write key 
     if (ret < 0) {
         perror(">>>TEST: Failed to write public data to the device.");
         return errno;
     }
-    
+
+     // Set mode to  init to register the values
+    printf(">>>TEST: (IOCTL) SET MODE TO INIT\n");
+    ret = ioctl(fd, IOCTL_SET_MODE, INIT); // switch mode 
+    if (ret < 0) {
+        perror(">>>TEST: Failed to set mode to encrypt.");
+        return errno;
+    }  
+
+    printf(">>>TEST: (IOCTL) SET MODE TO ENCRYPT *start*\n");
+    ret = ioctl(fd, IOCTL_SET_MODE, ENCRYPT); // switch mode 
+    if (ret < 0) {
+        perror(">>>TEST: Failed to set mode to encrypt.");
+        return errno;
+    }  
+
+
     // Read back encrypted data
     //printf(">>>TEST: READ \n");
     ret = read(fd, buf, RSA_SIZE_BYTES);        
@@ -132,6 +140,8 @@ int main (void)
         printf(">>>TEST: ERROR, ENCRYPTED DATA NOT CORRECT\n");
         return -1;
     }
+
+    return 0;
 
     // Set mode to SET_PRIVKEY to load private exponent from BRAM 
     printf(">>>TEST: IOCTL SET PRIVATE KEY\n");

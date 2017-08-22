@@ -24,7 +24,7 @@
 /*
  * These are the modes that the module can be in, set using IOCTL
  */
-typedef enum {ENCRYPT=0, DECRYPT=1, SET_PRIVKEY=2 } rsamode_t;
+typedef enum {ENCRYPT=0, DECRYPT=1, SET_PRIVKEY=2, INIT=3} rsamode_t;
 
 /*
  * Make the data structure holding public information accessible to caller
