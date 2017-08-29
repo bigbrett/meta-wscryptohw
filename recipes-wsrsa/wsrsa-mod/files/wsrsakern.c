@@ -18,6 +18,7 @@
 #include <asm/uaccess.h>          // Required for the copy to user function
 #include <linux/io.h>
 #include <linux/sizes.h>
+
 #include "wsrsakern.h" 						// ioctl numbers defined here
 
 // These are pulled straight from the Vivado exported hardware
@@ -26,8 +27,6 @@
 #define XWSRSA1024_AXILITES_ADDR_GIE                0x004
 #define XWSRSA1024_AXILITES_ADDR_IER                0x008
 #define XWSRSA1024_AXILITES_ADDR_ISR                0x00c
-#define XWSRSA1024_AXILITES_ADDR_MODE_DATA          0x010
-#define XWSRSA1024_AXILITES_BITS_MODE_DATA          2
 #define XWSRSA1024_AXILITES_ADDR_BASE_MEM_V_BASE    0x080
 #define XWSRSA1024_AXILITES_ADDR_BASE_MEM_V_HIGH    0x0ff
 #define XWSRSA1024_AXILITES_WIDTH_BASE_MEM_V        32
@@ -40,10 +39,20 @@
 #define XWSRSA1024_AXILITES_ADDR_MODULUS_MEM_V_HIGH 0x1ff
 #define XWSRSA1024_AXILITES_WIDTH_MODULUS_MEM_V     32
 #define XWSRSA1024_AXILITES_DEPTH_MODULUS_MEM_V     32
-#define XWSRSA1024_AXILITES_ADDR_RESULT_MEM_V_BASE  0x200
-#define XWSRSA1024_AXILITES_ADDR_RESULT_MEM_V_HIGH  0x27f
+#define XWSRSA1024_AXILITES_ADDR_MBAR0_V_BASE       0x200
+#define XWSRSA1024_AXILITES_ADDR_MBAR0_V_HIGH       0x27f
+#define XWSRSA1024_AXILITES_WIDTH_MBAR0_V           32
+#define XWSRSA1024_AXILITES_DEPTH_MBAR0_V           32
+#define XWSRSA1024_AXILITES_ADDR_XBAR0_V_BASE       0x280
+#define XWSRSA1024_AXILITES_ADDR_XBAR0_V_HIGH       0x2ff
+#define XWSRSA1024_AXILITES_WIDTH_XBAR0_V           32
+#define XWSRSA1024_AXILITES_DEPTH_XBAR0_V           32
+#define XWSRSA1024_AXILITES_ADDR_RESULT_MEM_V_BASE  0x300
+#define XWSRSA1024_AXILITES_ADDR_RESULT_MEM_V_HIGH  0x37f
 #define XWSRSA1024_AXILITES_WIDTH_RESULT_MEM_V      32
 #define XWSRSA1024_AXILITES_DEPTH_RESULT_MEM_V      32
+
+#define DEBUGPRINT 0
 
 
 #define  DEVICE_NAME "wsrsachar"    ///< The device will appear at /dev/wsrsa using this value
@@ -143,9 +152,9 @@ static int __init wsrsa_init(void)
     printk(KERN_INFO "wsrsa1024: device class created correctly\n"); // Made it! device was initialized
 
     // init mode to ENCRYPT
-    printk(KERN_INFO "wsrsa1024: initializing wsrsa block to mode ENCRYPT\n");
-    mode = ENCRYPT;
-    iowrite8(mode, vbaseaddr + XWSRSA1024_AXILITES_ADDR_MODE_DATA); // write new mode value to memory 
+    //printk(KERN_INFO "wsrsa1024: initializing wsrsa block to mode ENCRYPT\n");
+    //mode = ENCRYPT;
+    //iowrite8(mode, vbaseaddr + XWSRSA1024_AXILITES_ADDR_MODE_DATA); // write new mode value to memory 
 
     // Disable autorestart
     iowrite8(0, vbaseaddr + XWSRSA1024_AXILITES_ADDR_AP_CTRL);
@@ -199,23 +208,28 @@ static ssize_t wsrsa_read(struct file *filep, char *buffer, size_t len, loff_t *
 {
     unsigned int data_out[32]; // Memory for bytes passed back to userspace
 
-    // copyt ciphertext/plaintext data_from AXI Memory to kmem
-    //memcpy_fromio(data_out, vbaseaddr+XWSRSA1024_AXILITES_ADDR_RESULT_V_DATA, RSA_SIZE_BYTES);
-
+#if DEBUGPRINT
     printk(KERN_INFO "RESULT = ");
+#endif
     unsigned int *reg = vbaseaddr+XWSRSA1024_AXILITES_ADDR_RESULT_MEM_V_BASE;
     int i;
     for (i=0; i<32; i++)
     {
         data_out[i] = ioread32(reg++);
+#if DEBUGPRINT
         printk(KERN_CONT "0x%08X, ",data_out[i]);
+#endif
     }
+#if DEBUGPRINT
     printk(KERN_INFO "\n");
+#endif
 
     // Copy data_out from kmem into userspace (*to,*from,size)
     copy_to_user(buffer, data_out, RSA_SIZE_BYTES);
 
+#if DEBUGPRINT
     printk(KERN_INFO "wsrsa1024: Copied data of length %d bytes back to userspace\n", RSA_SIZE_BYTES);
+#endif
     return RSA_SIZE_BYTES;  
 }
 
@@ -230,54 +244,89 @@ static ssize_t wsrsa_read(struct file *filep, char *buffer, size_t len, loff_t *
  */
 static ssize_t wsrsa_write(struct file *filep, const char *buffer, size_t len, loff_t *offset)
 {  
+    printk(KERN_INFO "IN WRITE\n");
     RSAPublic_t PublicData; // Memory for bytes passed from userspace
 
     // copy base,exponent,modulus from userspace-->kmem struct
     copy_from_user(&PublicData, buffer, sizeof(RSAPublic_t)); 
     print_hex_dump_bytes(".base    = ",0, PublicData.base, RSA_SIZE_BYTES);
-    print_hex_dump_bytes(".exp     = ",0,PublicData.exponent,RSA_SIZE_BYTES);
-    print_hex_dump_bytes(".modulus = ",0,PublicData.modulus,RSA_SIZE_BYTES);
+    print_hex_dump_bytes(".exp     = ",0, PublicData.exponent,RSA_SIZE_BYTES);
+    print_hex_dump_bytes(".modulus = ",0, PublicData.modulus,RSA_SIZE_BYTES);
+    print_hex_dump_bytes(".xbar    = ",0, PublicData.xbar,RSA_SIZE_BYTES);
+    print_hex_dump_bytes(".Mbar    = ",0, PublicData.Mbar,RSA_SIZE_BYTES);
 
     // copy base from kmem into AXI memory WORD AT A TIME 
     int byte_offset;
-    //printk(KERN_INFO "BASE WRITTEN = ");
-    //printk(KERN_INFO "BASE ADDRS = ");
+#if DEBUGPRINT
+    printk(KERN_INFO "BASE WRITTEN = ");
+    printk(KERN_INFO "BASE ADDRS = ");
+#endif 
     for (byte_offset=0; byte_offset<128; byte_offset+=4) 
     {
         iowrite32(*((unsigned int*)(PublicData.base + byte_offset)), vbaseaddr+XWSRSA1024_AXILITES_ADDR_BASE_MEM_V_BASE + byte_offset);     
-        //printk(KERN_CONT "0x%08X, ",*((unsigned int*)(PublicData.base + byte_offset)));
-        //printk(KERN_CONT "0x%X ", vbaseaddr+XWSRSA1024_AXILITES_ADDR_BASE_V_DATA + byte_offset);;    
+#if DEBUGPRINT
+        printk(KERN_CONT "0x%08X, ",*((unsigned int*)(PublicData.base + byte_offset)));
+        printk(KERN_CONT "0x%X ", vbaseaddr+XWSRSA1024_AXILITES_ADDR_BASE_MEM_V_BASE + byte_offset);;    
+#endif
     }
+#if DEBUGPRINT
     printk(KERN_INFO "\n");
+#endif
 
     // copy exponent from kmem into AXI memory WORD AT A TIME 
-    //printk(KERN_INFO "EXP WRITTEN = ");
+#if DEBUGPRINT
+    printk(KERN_INFO "EXP WRITTEN = ");
+#endif
     for (byte_offset=0; byte_offset<128; byte_offset+=4) 
     {
         iowrite32(*((unsigned int*)(PublicData.exponent+ byte_offset)), vbaseaddr+XWSRSA1024_AXILITES_ADDR_PUBLEXP_MEM_V_BASE + byte_offset);     
-        //printk(KERN_CONT "0x%08X, ",*((unsigned int*)(PublicData.exponent+ byte_offset)));
+#if DEBUGPRINT
+        printk(KERN_CONT "0x%08X, ",*((unsigned int*)(PublicData.exponent+ byte_offset)));
+#endif
     }
-    //printk(KERN_INFO "\n");
-
+#if DEBUGPRINT
+    printk(KERN_INFO "\n");
     // copy modulus from kmem into AXI memory WORD AT A TIME 
-    //printk(KERN_INFO "MOD WRITTEN = ");
+    printk(KERN_INFO "MOD WRITTEN = ");
+#endif
     for (byte_offset=0; byte_offset<128; byte_offset+=4) 
     {
         iowrite32(*((unsigned int*)(PublicData.modulus+ byte_offset)), vbaseaddr+XWSRSA1024_AXILITES_ADDR_MODULUS_MEM_V_BASE + byte_offset);     
-        //printk(KERN_CONT "0x%08X, ",*((unsigned int*)(PublicData.modulus+ byte_offset)));
+#if DEBUGPRINT
+        printk(KERN_CONT "0x%08X, ",*((unsigned int*)(PublicData.modulus+ byte_offset)));
+#endif
     }    
-    //printk(KERN_INFO "\n");
+#if DEBUGPRINT
+    printk(KERN_INFO "\n");
+    // copy xbar from kmem into AXI memory 
+    printk(KERN_INFO "XBAR WRITTEN = ");
+#endif
+    for (byte_offset=0; byte_offset<128; byte_offset+=4) 
+    {
+        iowrite32(*((unsigned int*)(PublicData.xbar+ byte_offset)), vbaseaddr+XWSRSA1024_AXILITES_ADDR_XBAR0_V_BASE + byte_offset);     
+#if DEBUGPRINT
+        printk(KERN_CONT "0x%08X, ",*((unsigned int*)(PublicData.xbar+ byte_offset)));
+#endif
+    }    
+#if DEBUGPRINT
+    printk(KERN_INFO "\n");
 
-    // Set mode to INIT and start block to load data
-    //mode = INIT;
-    //iowrite8(mode, vbaseaddr + XWSRSA1024_AXILITES_ADDR_MODE_DATA); // write new mode value to memory 
-    //wsrsa_runonce_blocking();
 
-    //// TODO REMOVE THIS ONCE WE WANT TO DECRYPT
-    //mode = ENCRYPT;
-    //iowrite8
+    // copy xbar from kmem into AXI memory 
+    printk(KERN_INFO "MBAR WRITTEN = ");
+#endif
+    for (byte_offset=0; byte_offset<128; byte_offset+=4) 
+    {
+        iowrite32(*((unsigned int*)(PublicData.Mbar+ byte_offset)), vbaseaddr+XWSRSA1024_AXILITES_ADDR_MBAR0_V_BASE + byte_offset);     
+#if DEBUGPRINT
+        printk(KERN_CONT "0x%08X, ",*((unsigned int*)(PublicData.Mbar+ byte_offset)));
+#endif
+    }    
+#if DEBUGPRINT
+    printk(KERN_INFO "\n");
 
     printk(KERN_INFO "wsrsa1024: Received message of length %zu bytes from userspace\n", len);
+#endif
     return len;
 }
 
@@ -305,14 +354,21 @@ static long wsrsa_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
             // check mode is valid
             if ( (mode >= 0) && (mode <= 3)) 
             {
-                printk(KERN_INFO "IOCTL_SET_MODE: curr_mode = (%d)\n",mode);
-                mode = (rsamode_t)ioctl_param; // Get mode parameter passed to ioctl by user 
-                printk(KERN_INFO "new mode = (%d)\n", mode);
-                iowrite8(mode, vbaseaddr + XWSRSA1024_AXILITES_ADDR_MODE_DATA); // write new mode value to memory 
+                // update mode
+#if DEBUGPRINT
+                //printk(KERN_INFO "IOCTL_SET_MODE: curr_mode = (%d)...",mode);
+#endif
+                //mode = (rsamode_t)ioctl_param; // Get mode parameter passed to ioctl by user 
+#if DEBUGPRINT
+                //printk(KERN_CONT "new mode = (%d)\n", mode);
+#endif
+                //iowrite32((int)mode, vbaseaddr + XWSRSA1024_AXILITES_ADDR_MODE_DATA); // write new mode value to memory 
 
-                // If mode is SET_PRIVKEY, we must run the block once to load key from BRAM 
-                if (mode == SET_PRIVKEY || mode == ENCRYPT || mode == INIT)
-                    wsrsa_runonce_blocking();
+                // start hardware to register new mode
+#if DEBUGPRINT
+                printk(KERN_INFO "IOCTL_SET_MODE: wsrsa_runonce_blocking()\n");
+#endif
+                wsrsa_runonce_blocking();
             }
             // invalid argument 
             else  {

@@ -24,7 +24,7 @@
 /*
  * These are the modes that the module can be in, set using IOCTL
  */
-typedef enum {ENCRYPT=0, DECRYPT=1, SET_PRIVKEY=2, INIT=3} rsamode_t;
+typedef enum {ENCRYPT=0, DECRYPT=1, SET_PRIVKEY=2, INIT=3 } rsamode_t;
 
 /*
  * Make the data structure holding public information accessible to caller
@@ -33,6 +33,8 @@ typedef struct {
     char base[RSA_SIZE_BYTES];
     char exponent[RSA_SIZE_BYTES];
     char modulus[RSA_SIZE_BYTES];
+    char xbar[RSA_SIZE_BYTES];
+    char Mbar[RSA_SIZE_BYTES];
 } RSAPublic_t;
 
 /* The major device number. We can't rely on dynamic 

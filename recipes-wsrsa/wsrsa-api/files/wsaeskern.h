@@ -1,16 +1,16 @@
 /**
- * @file   wsrsa.h
+ * @file   wsaes.h
  * @author Brett Nicholas
  * @date   5/11/17
  * @version 0.1
  * @brief   
- * Header file for a Linux loadable kernel module (LKM) for an RSA acceleator. This 
- * module maps to /dev/wsrsa and comes with a helper C program that can be run in Linux user space 
+ * Header file for a Linux loadable kernel module (LKM) for AES-CBC acceleator. This 
+ * module maps to /dev/wsaes and comes with a helper C program that can be run in Linux user space 
  * to communicate with this LKM.
  *
  *  The declarations here have to be in a header file, because
  *  they need to be known BOTH to the kernel module
- *  (in wsrsa.c) and the userspace process calling ioctl (driver) 
+ *  (in wsaes.c) and the userspace process calling ioctl (driver) 
  */
 
 #ifndef CHARDEV_H
@@ -19,28 +19,11 @@
 #include <linux/ioctl.h>
 
 
-#define RSA_SIZE_BYTES 128
-
-/*
- * These are the modes that the module can be in, set using IOCTL
- */
-typedef enum {ENCRYPT=0, DECRYPT=1, SET_PRIVKEY=2, INIT=3 } rsamode_t;
-
-/*
- * Make the data structure holding public information accessible to caller
- */
-typedef struct {
-    char base[RSA_SIZE_BYTES];
-    char exponent[RSA_SIZE_BYTES];
-    char modulus[RSA_SIZE_BYTES];
-    char xbar[RSA_SIZE_BYTES];
-    char Mbar[RSA_SIZE_BYTES];
-} RSAPublic_t;
 
 /* The major device number. We can't rely on dynamic 
  * registration any more, because ioctls need to know 
  * it. */
-#define MAJOR_NUM 102
+#define MAJOR_NUM 100
 
 /* _IOR means that we're creating an ioctl command 
  * number for passing information from a user process
