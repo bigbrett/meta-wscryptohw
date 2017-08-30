@@ -20,7 +20,7 @@
 #include "wsaeskern.h" 						// ioctl numbers defined here
 
 // TODO this needs to be changed...we should not be hardcoding these
-#define WSAESBASEADDR 0x43C10000
+#define WSAESBASEADDR 0x43C20000
 #define XAESCBC_AXILITES_ADDR_AP_CTRL       0x00
 #define XAESCBC_AXILITES_ADDR_GIE           0x04
 #define XAESCBC_AXILITES_ADDR_IER           0x08
